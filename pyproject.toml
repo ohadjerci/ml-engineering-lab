@@ -65,7 +65,7 @@ url = "https://download.pytorch.org/whl/cu126"
 explicit = true
 
 [tool.pytest.ini_options]
-addopts = "--cov --cov-config=pyproject.toml --cov-report=term-missing --cov-report=json"
+addopts = "--cov --cov-config=pyproject.toml --cov-report=term-missing --cov-report=json --cov-report=xml"
 pythonpath = ["."]
 markers = ["slow: integration tests with short training or sweep runs"]
 

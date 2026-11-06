@@ -1,10 +1,10 @@
 # https://mlflow.org
-# mlflow ui --backend-store-uri logs/mlflow/mlruns/ --port 50001
+# Start the server with `docker compose up --build -d mlflow`.
 mlflow:
   _target_: lightning.pytorch.loggers.mlflow.MLFlowLogger
-  experiment_name: "vignface_project"
+  experiment_name: "${oc.env:MLFLOW_EXPERIMENT_NAME,project_http}"
   # run_name: ""
-  tracking_uri: ${paths.log_dir}/mlflow/mlruns # run `mlflow ui` command inside the `logs/mlflow/` dir to open the UI
+  tracking_uri: ${oc.env:MLFLOW_TRACKING_URI,http://localhost:50001}
   tags: null
   # save_dir: "./mlruns"
   prefix: ""

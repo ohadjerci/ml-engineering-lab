@@ -9,6 +9,7 @@ defaults:
   - paths: default.yaml
   - extras: default.yaml
   - hydra: default.yaml
+  - registry: default.yaml
 
 task_name: "eval"
 

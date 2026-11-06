@@ -25,6 +25,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 # ------------------------------------------------------------------------------------ #
 
 from src import utils  # noqa: E402 -- root setup must precede local imports
+from src.utils.model_registry import publish_evaluated_model  # noqa: E402
 
 log = utils.get_pylogger(__name__)
 
@@ -70,6 +71,7 @@ def evaluate(cfg: DictConfig) -> Tuple[dict, dict]:
 
     log.info("Starting testing!")
     trainer.test(model=model, datamodule=datamodule, ckpt_path=cfg.ckpt_path)
+    publish_evaluated_model(trainer, model, cfg.registry, str(cfg.ckpt_path))
 
     # for predictions use trainer.predict(...)
     # predictions = trainer.predict(model=model, dataloaders=dataloaders, ckpt_path=cfg.ckpt_path)

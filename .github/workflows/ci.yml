@@ -4,7 +4,6 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -30,6 +29,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up uv and Python
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -55,58 +55,70 @@ jobs:
       - name: Check installed dependencies
         run: uv pip check
 
+      - name: Test report action
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: uv run --locked python -m unittest discover -s .github/actions/quality-report -p 'test_*.py'
+
       - name: Run tests without sweeps
+        id: tests
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: >-
           uv run --locked pytest --ignore=tests/test_sweeps.py -ra
           --junitxml="$RUNNER_TEMP/pytest-cpu.xml"
 
       - name: Ruff lint
+        id: ruff
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
-        run: uv run --locked ruff check .
+        run: uv run --locked ruff check . --output-format=json --output-file "$RUNNER_TEMP/ruff.json"
 
       - name: Ruff formatting
+        id: format
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
-        run: uv run --locked ruff format --check .
+        shell: bash
+        run: uv run --locked ruff format --check . 2>&1 | tee "$RUNNER_TEMP/ruff-format.log"
 
       - name: MyPy core training path
+        id: mypy
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
-        # Explicit paths keep the initial scope visible; pyproject.toml mirrors this list.
+        shell: bash
         run: >-
           uv run --locked mypy src/train.py src/eval.py src/data
           src/models/mnist_module.py src/models/components src/utils
+          2>&1 | tee "$RUNNER_TEMP/mypy.log"
 
-      - name: Publish coverage summary
+      - name: Enforce coverage and report four badges
         if: ${{ always() }}
-        run: |
-          python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
+        uses: ./.github/actions/quality-report
+        with:
+          base-sha: ${{ github.event.pull_request.base.sha }}
+          head-sha: ${{ github.event.pull_request.head.sha }}
+          mypy-outcome: ${{ steps.mypy.outcome }}
+          ruff-lint-outcome: ${{ steps.ruff.outcome }}
+          ruff-format-outcome: ${{ steps.format.outcome }}
 
-          report = Path("coverage.json")
-          lines = ["## CPU test coverage", ""]
-          if report.is_file():
-              totals = json.loads(report.read_text())["totals"]
-              lines += ["| Metric | Covered / total | Coverage |", "| --- | ---: | ---: |"]
-              for label, covered, total in [
-                  ("Statements", totals["covered_lines"], totals["num_statements"]),
-                  ("Branches", totals["covered_branches"], totals["num_branches"]),
-                  ("Combined", totals["covered_lines"] + totals["covered_branches"],
-                   totals["num_statements"] + totals["num_branches"]),
-              ]:
-                  percentage = f"{100 * covered / total:.2f}%" if total else "N/A"
-                  lines.append(f"| {label} | {covered} / {total} | {percentage} |")
-          else:
-              lines.append("Coverage unavailable: the test run did not generate coverage.json.")
-          summary = "\n".join(lines) + "\n"
-          print(summary)
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as output:
-              output.write(summary)
-          PY
+      - name: Upload numeric quality report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: quality-report
+          path: ${{ runner.temp }}/quality-report.json
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload coverage reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: coverage-cpu
+          path: |
+            coverage.xml
+            coverage.json
+          retention-days: 7
+          if-no-files-found: warn
 
       - name: Upload CPU test report
         if: ${{ always() }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: pytest-cpu
           path: ${{ runner.temp }}/pytest-cpu.xml

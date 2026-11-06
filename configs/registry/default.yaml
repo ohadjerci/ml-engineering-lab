@@ -1,0 +1,5 @@
+# Publish after testing succeeds, when an MLflow logger is configured.
+enabled: true
+model_name: MNIST
+alias: best_model
+metric: test/loss
