@@ -41,6 +41,24 @@ pytest headline coverage with the separate line and branch percentages in CI.
 
 ## CI gates and reporting
 
+### Codex pull request reviews
+
+[Codex PR review](../.github/workflows/codex-review.yml) runs independently of the
+CPU checks when a pull request is opened, updated, or reopened. Configure the
+repository Actions secret `OPENAI_API_KEY` with an OpenAI API key to enable it.
+Codex reviews the PR diff in a read-only sandbox and a separate job posts its
+feedback as a PR conversation comment. Findings are advisory; a failed review
+job indicates a workflow or authentication problem, not a code-quality verdict.
+Each update can produce a new comment, and an in-progress review is cancelled
+when a newer update arrives.
+
+Credentialed reviews run only for same-repository PRs. Fork PRs are skipped;
+the action also permits only users with repository write access by default,
+so runs triggered by other users or bots need explicit authorization. The
+workflow must be present on the PR branch to run, and reviews send repository
+content to the OpenAI API. See the [official action documentation](https://learn.chatgpt.com/docs/github-action)
+for authentication and security details.
+
 [CI](../.github/workflows/ci.yml) runs on pushes to all branches, PRs targeting
 `main`, and manual dispatch. The hosted Ubuntu CPU job checks the lockfile,
 installs locked dependencies, checks dependency consistency, and runs tests.
