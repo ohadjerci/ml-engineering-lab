@@ -12,11 +12,13 @@ import torch
 from lightning import LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import MLFlowLogger
 from mlflow import MlflowClient
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
 def _json_value(value: Any) -> Any:
     """Convert common runtime/config values to values accepted by MLflow metadata."""
+    if isinstance(value, (DictConfig, ListConfig)):
+        value = OmegaConf.to_container(value, resolve=True)
     if isinstance(value, dict):
         return {str(key): _json_value(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):
@@ -118,7 +120,11 @@ def extract_model_metadata(
         config_values = OmegaConf.to_container(network_cfg, resolve=True)
         if isinstance(config_values, dict):
             metadata["model_config"] = _json_value(
-                {key: value for key, value in config_values.items() if not key.startswith("_")}
+                {
+                    key: value
+                    for key, value in config_values.items()
+                    if not isinstance(key, str) or not key.startswith("_")
+                }
             )
 
     # Confirm the output has only JSON-safe structures before handing it to MLflow.
