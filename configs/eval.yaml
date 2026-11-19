@@ -4,14 +4,17 @@ defaults:
   - _self_
   - data: mnist.yaml # choose datamodule with `test_dataloader()` for evaluation
   - model: mnist.yaml
+  - callbacks: null
   - logger: null
   - trainer: default.yaml
   - paths: default.yaml
   - extras: default.yaml
   - hydra: default.yaml
   - registry: default.yaml
+  - experiment: null
 
 task_name: "eval"
+evaluation_stage: test
 
 tags: ["dev"]
 

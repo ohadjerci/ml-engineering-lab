@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - override /data: pcb
+  - override /model: pcb
+  - override /callbacks: pcb
+  - override /registry: pcb
+
+tags: [pcb, resnet]
+trainer:
+  max_epochs: 50
+  use_distributed_sampler: false

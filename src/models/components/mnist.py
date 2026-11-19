@@ -139,6 +139,8 @@ class ResNet(nn.Module):
         dropout: float = 0.25,
         normalize: bool = False,
         return_features: bool = False,
+        in_channels: int = 1,
+        stem_channels: int = 256,
     ) -> None:
         super().__init__()
         if norm_layer is None:
@@ -162,10 +164,14 @@ class ResNet(nn.Module):
         self.groups = groups
         self.base_width = width_per_group
 
-        self.conv1 = nn.Conv2d(1, 256, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = norm_layer(256)
+        self.conv1 = nn.Conv2d(
+            in_channels, stem_channels, kernel_size=3, stride=1, padding=1, bias=False
+        )
+        self.bn1 = norm_layer(stem_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(256, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(
+            stem_channels, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False
+        )
         self.bn2 = norm_layer(self.inplanes)
 
         self.layer1 = self._make_layer(

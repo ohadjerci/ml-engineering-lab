@@ -15,8 +15,9 @@ documentation update. Original files remain in `logs/mlflow/mlruns/`.
 Supported migration copies metadata but retains artifact URIs. An old experiment
 such as `minst_project` can therefore retain local artifact paths even though its
 metadata is now in SQLite. Intermediate experiments such as `minst_project_http`
-may also remain. The current default `project_http` creates new runs with
-server-proxied artifact locations. Do not infer the artifact scheme from a name.
+and `project_http` may also remain. New runs default to the selected dataset's
+`data.name` (`MNIST`, `PCB`, etc.) with server-proxied artifact locations. Existing
+experiments and runs keep their names. Do not infer the artifact scheme from a name.
 
 ## Equivalent migration on another installation
 

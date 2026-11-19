@@ -82,8 +82,9 @@ jobs:
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         shell: bash
         run: >-
-          uv run --locked mypy src/train.py src/eval.py src/data
-          src/models/mnist_module.py src/models/components src/utils
+          uv run --locked mypy src/train.py src/eval.py src/validate.py src/data
+          src/models/mnist_module.py src/models/classification_module.py
+          src/callbacks/classification_results.py src/models/components src/utils
           2>&1 | tee "$RUNNER_TEMP/mypy.log"
 
       - name: Enforce coverage and report four badges

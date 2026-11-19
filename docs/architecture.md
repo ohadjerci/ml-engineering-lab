@@ -67,8 +67,10 @@ reads finalized test callback metrics.
 
 ## Extension limits
 
-The default network, metrics, preprocessing metadata, and export example are tied
-to one grayscale input channel and ten digits. A new dataset requires coordinated
-changes to those components, not just a different data directory. Some retained
+MNIST remains the default. The shared classification module, configurable ResNet
+channels, and input-shape-aware export also support PCB through `experiment=pcb`.
+See [PCB classification](pcb.md) for image-level labels, isolated splits, complete
+S-group batches, result artifacts, and just recipes. PCB currently requires one
+device/node; MNIST retains its distributed configuration. Some retained
 legacy detection utilities, debug/sweep presets, and the custom cluster plugin
 still need migration; they are not a supported first-run path.

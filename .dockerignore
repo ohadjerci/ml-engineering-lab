@@ -30,3 +30,6 @@ wandb
 tmp
 temp
 .dvc/cache
+
+.mypy_cache
+.ruff_cache

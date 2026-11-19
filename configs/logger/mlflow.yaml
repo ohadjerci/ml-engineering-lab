@@ -2,7 +2,7 @@
 # Start the server with `docker compose up --build -d mlflow`.
 mlflow:
   _target_: lightning.pytorch.loggers.mlflow.MLFlowLogger
-  experiment_name: "${oc.env:MLFLOW_EXPERIMENT_NAME,project_http}"
+  experiment_name: "${oc.env:MLFLOW_EXPERIMENT_NAME,${data.name}}"
   # run_name: ""
   tracking_uri: ${oc.env:MLFLOW_TRACKING_URI,http://localhost:50001}
   tags: null
