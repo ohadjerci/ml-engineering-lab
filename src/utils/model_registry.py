@@ -74,7 +74,8 @@ def extract_model_metadata(
     dataset = getattr(datamodule, "data_test", None)
     if dataset is not None:
         try:
-            sample, _ = dataset[0]
+            item = dataset[0]
+            sample = item["image"] if isinstance(item, dict) else item[0]
             sample_shape = list(sample.shape)
         except (IndexError, TypeError, ValueError, AttributeError):
             pass
@@ -84,6 +85,10 @@ def extract_model_metadata(
     else:
         add("image_size", None, data_cfg.get("image_size"))
 
+    for key in ("class_mapping", "preprocessing", "input_shape"):
+        value = getattr(datamodule, key, None)
+        if value is not None:
+            metadata[key] = _json_value(value)
     class_labels = None
     pending_datasets = [dataset]
     visited: set[int] = set()
@@ -169,7 +174,10 @@ def publish_evaluated_model(
     if not math.isfinite(score):
         raise ValueError(f"Non-finite promotion metric {metric}: {score}")
     network = copy.deepcopy(cast(torch.nn.Module, model.net)).cpu().eval()
-    example = torch.zeros(1, 1, 28, 28)
+    shape = metadata.get("input_shape")
+    if not shape or len(shape) != 3:
+        raise ValueError("Export requires [channels, height, width] input_shape metadata")
+    example = torch.zeros(1, *shape)
     with torch.inference_mode():
         packaged = torch.jit.trace(network, example)
         torch.testing.assert_close(packaged(example), network(example))

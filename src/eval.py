@@ -3,6 +3,7 @@ from typing import List, Tuple
 import hydra
 import pyrootutils
 from lightning import LightningDataModule, LightningModule, Trainer
+from lightning.pytorch.callbacks import LearningRateMonitor
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
 
@@ -46,6 +47,9 @@ def evaluate(cfg: DictConfig) -> Tuple[dict, dict]:
     Returns:
         Tuple[dict, dict]: Dict with metrics and dict with all instantiated objects.
     """
+    stage = cfg.get("evaluation_stage", "test")
+    if stage not in {"test", "validate"}:
+        raise ValueError("Evaluation stage must be test or validate")
     assert cfg.ckpt_path
 
     log.info(f"Instantiating datamodule <{cfg.data._target_}>")
@@ -58,7 +62,12 @@ def evaluate(cfg: DictConfig) -> Tuple[dict, dict]:
     logger: List[Logger] = utils.instantiate_loggers(cfg.get("logger"))
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
-    trainer: Trainer = hydra.utils.instantiate(cfg.trainer, logger=logger)
+    callbacks = utils.instantiate_callbacks(cfg.get("callbacks"))
+    if not logger:
+        callbacks = [
+            callback for callback in callbacks if not isinstance(callback, LearningRateMonitor)
+        ]
+    trainer: Trainer = hydra.utils.instantiate(cfg.trainer, logger=logger, callbacks=callbacks)
 
     object_dict = {
         "cfg": cfg,
@@ -72,10 +81,13 @@ def evaluate(cfg: DictConfig) -> Tuple[dict, dict]:
         log.info("Logging hyperparameters!")
         utils.log_hyperparameters(object_dict)
 
-    log.info("Starting testing!")
-    trainer.test(model=model, datamodule=datamodule, ckpt_path=cfg.ckpt_path)
-    metadata = extract_model_metadata(datamodule, model, cfg.data, cfg.model)
-    publish_evaluated_model(trainer, model, cfg.registry, str(cfg.ckpt_path), metadata)
+    log.info(f"Starting {stage}!")
+    if stage == "validate":
+        trainer.validate(model=model, datamodule=datamodule, ckpt_path=cfg.ckpt_path)
+    else:
+        trainer.test(model=model, datamodule=datamodule, ckpt_path=cfg.ckpt_path)
+        metadata = extract_model_metadata(datamodule, model, cfg.data, cfg.model)
+        publish_evaluated_model(trainer, model, cfg.registry, str(cfg.ckpt_path), metadata)
 
     # for predictions use trainer.predict(...)
     # predictions = trainer.predict(model=model, dataloaders=dataloaders, ckpt_path=cfg.ckpt_path)

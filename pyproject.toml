@@ -39,6 +39,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "debugpy>=1.8,<2",
     "ruff==0.17.4",
     "mypy==2.4.1",
     "pytest",
@@ -103,7 +104,8 @@ indent-style = "space"
 python_version = "3.12"
 # Expand this list as the legacy detection helpers and cluster plugin are repaired.
 files = [
-    "src/train.py", "src/eval.py", "src/data", "src/models/mnist_module.py",
+    "src/train.py", "src/eval.py", "src/validate.py", "src/data", "src/models/mnist_module.py", "src/models/classification_module.py",
+    "src/callbacks/classification_results.py",
     "src/models/components", "src/utils",
 ]
 check_untyped_defs = true

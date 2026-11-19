@@ -12,7 +12,7 @@ variable into a container. The image also excludes `.env` files from its build.
 | Variable | Implemented behavior |
 | --- | --- |
 | `MLFLOW_TRACKING_URI` | Hydra fallback: `http://localhost:50001`; Compose `train` explicitly sets `http://mlflow:5000`. |
-| `MLFLOW_EXPERIMENT_NAME` | Hydra fallback: `project_http`; pass with Compose `-e` or override the Hydra logger setting. |
+| `MLFLOW_EXPERIMENT_NAME` | Defaults to `data.name` (`MNIST`, `PCB`, etc.); pass with Compose `-e` or override the Hydra logger setting. |
 | `PROJECT_ROOT` | Set by `pyrootutils` root discovery; normally `/workspace` in the image. |
 | `LOCAL_UID`, `LOCAL_GID` | Host UID/GID for the `lock` maintenance service; defaults are `1000:1000`. |
 | `MLFLOW_ALLOW_FILE_STORE` | Legacy file-store compatibility, not needed for new HTTP runs; the test service forwards it with default `false`. |
@@ -92,10 +92,10 @@ configured in [`configs/registry/default.yaml`](../configs/registry/default.yaml
 Changing its metric string alone does not implement validation-based promotion;
 see the [known mismatch](architecture.md#model-selection-mismatch).
 
-MNIST's configured dataset root is `/workspace/data/MNIST/`. The `train` service
-does not mount `data/`, so downloads in a disposable training container are not
-retained. To reuse downloads, add `-v "$PWD/data:/workspace/data"` before the service
-name and ensure that host directory is writable by `mlcycle` first.
+Training and debugging mount host `data/` at `/workspace/data`. MNIST uses
+`/workspace/data/MNIST/`; PCB uses `/workspace/data/REALIAD/pcb` and
+`/workspace/data/REALIAD/pcb.json`, as configured in YAML. Downloads persist in
+the host directory; ensure it is writable by `mlcycle` first.
 
 Machine-specific Hydra overrides belong in ignored `configs/local/`. CSV and
 TensorBoard are available logger presets; other included external logger presets

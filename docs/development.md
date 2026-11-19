@@ -109,3 +109,60 @@ docker compose run --build --rm -v "$PWD:/workspace" -w /workspace tests bash
 Inside that container, `uv run --locked pytest tests/test_configs.py --pdb` is a
 small debugging entry point. The environment lives at `/opt/venv`, outside the
 checkout mount. Keep datasets, credentials, checkpoints, and outputs out of commits.
+
+## VS Code breakpoints in Docker
+
+Install the VS Code **Python** and **Python Debugger** extensions and open this
+repository root. Debug commands use the normal GPU, training duration, logging,
+checkpoints, and registry publication settings. The NVIDIA Container Toolkit is
+required, including when selecting a CPU trainer. Prepare writable data and output
+directories as described in the README and [storage guidance](mlflow.md#storage-permissions).
+
+1. Run `just debug-up` to build and start the persistent container and MLflow.
+2. Set a breakpoint in `src/train.py`, for example on the first line inside `train`.
+3. Run `just debug` in a terminal. It waits before executing project code.
+4. Select **Attach to Docker training** in VS Code's Run and Debug panel and press
+   **F5**. Execution pauses at your breakpoint; inspect variables, step, or continue.
+5. After the process exits, run `just debug` and attach again for another session.
+   Use `just debug-down` when finished; MLflow remains running.
+
+Source and configuration changes are mounted live, so restart the debug command
+after edits. Rebuild with `just debug-up` after dependency changes. `just bash`
+opens a shell in the active container. Only one debug process can listen at a time;
+finish or interrupt the current command before starting another. If you detach
+while leaving the process running, wait for it to exit or interrupt its terminal.
+
+Hydra overrides are forwarded normally. For a short run, or to hit breakpoints
+inside dataset-loading code in the main process, use:
+
+```bash
+just debug trainer.max_epochs=1 data.num_workers=0
+# Optional CPU trainer (the container still requests NVIDIA GPU access):
+just debug trainer=cpu trainer.max_epochs=1 data.num_workers=0
+```
+
+Validation and test commands require a checkpoint path inside the container:
+
+```bash
+just debug-validate /workspace/logs/train/runs/RUN/checkpoints/last.ckpt
+just debug-eval /workspace/logs/train/runs/RUN/checkpoints/last.ckpt
+```
+
+PCB uses its YAML paths, just like MNIST. The shared `./data:/workspace/data`
+mount provides `data/REALIAD/pcb.json` and `data/REALIAD/pcb/`:
+
+```bash
+just debug-up
+just debug-pcb data.num_workers=0
+just debug-validate-pcb /workspace/logs/train/runs/RUN/checkpoints/last.ckpt
+just debug-eval-pcb /workspace/logs/train/runs/RUN/checkpoints/last.ckpt
+```
+
+PCB commands accept additional Hydra overrides, including
+`data.split.assignments_path=...`. Evaluation keeps its usual logging/publication
+behavior; add `logger=mlflow` when publication is intended.
+
+The VS Code configuration maps the local checkout to `/workspace`. Port 5678 is
+published only on `127.0.0.1`; stop the vision-inference debug container first if
+it uses the same host port. This attachment workflow does not enable the separate
+legacy Hydra `debug=` presets.

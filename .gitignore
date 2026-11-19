@@ -69,7 +69,8 @@ events.out.tfevents.*
 # Notebook checkpoints, editor state, and OS files
 .ipynb_checkpoints/
 .idea/
-.vscode/
+.vscode/*
+!.vscode/launch.json
 *.swp
 *.swo
 *~

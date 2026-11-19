@@ -33,8 +33,9 @@ configuration. Do not use a host-local URL inside the training container.
 
 ## The experiment or model is missing
 
-New runs default to `project_http`. An old experiment may still appear with a
-previous name. The registry model is separately named `MNIST`.
+New runs default to the selected dataset's `data.name` (`MNIST`, `PCB`, etc.).
+An old experiment such as `project_http` may still appear with its previous name.
+Registered model names are configured separately in the `registry` group.
 
 A model is published only after testing succeeds, with MLflow logging and
 `registry.enabled=true`. `test=false` skips publication; standalone evaluation

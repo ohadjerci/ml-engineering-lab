@@ -1,0 +1,14 @@
+defaults:
+  - mnist
+  - _self_
+
+_target_: src.models.classification_module.ClassificationLitModule
+class_mapping: ${data.class_mapping}
+defective_class: ${data.sampling.defective_class}
+monitor: val/loss
+metric_average: macro
+net:
+  _partial_: true
+  n_classes: null
+  in_channels: ${data.preprocessing.channels}
+  stem_channels: 32

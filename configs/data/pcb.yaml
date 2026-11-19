@@ -1,0 +1,28 @@
+_target_: src.data.pcb_datamodule.PCBDataModule
+_recursive_: false
+name: PCB
+root_dir: ${paths.data_dir}/REALIAD/pcb
+manifest_path: ${paths.data_dir}/REALIAD/pcb.json
+class_mapping:
+  OK: [OK]
+  defective: [HS, QS, YW, ZW]
+preprocessing:
+  channels: 3
+  image_size: [256, 256]
+  interpolation: bilinear
+  mean: [0.5, 0.5, 0.5]
+  std: [0.5, 0.5, 0.5]
+  train_transforms: []
+split:
+  proportions: [0.70, 0.15, 0.15]
+  seed: 42
+  group_by: board_group
+  assignments_path: null
+sampling:
+  target_defective_fraction: 0.5
+  defective_class: defective
+  seed: ${data.split.seed}
+  oversized: error
+batch_size: 64
+num_workers: 8
+pin_memory: true

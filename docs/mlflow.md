@@ -57,17 +57,21 @@ before running them. Changing top-level directory ownership does not repair
 permissions of existing nested files. Do not solve this by making all files
 world-writable or deleting old experiments.
 
-Training persists only `logs/train/` and `logs/eval/`; it cannot directly access
+Training persists datasets in `data/` and outputs in `logs/train/` and `logs/eval/`;
+it cannot directly access
 the server's database or artifacts. Custom task names/output paths need their own
 mount if their outputs must survive container removal.
 
 ## Experiments and models
 
-`project_http` is the current default experiment. It groups tracked runs;
-`MNIST` is the registered model name and groups numbered model versions. These
-are different objects. `best_model` is an alias for one registered version.
+The experiment name defaults to the selected `data.name`: `MNIST` for MNIST,
+`PCB` for PCB, and the configured name for future datasets. Set
+`MLFLOW_EXPERIMENT_NAME` or override `logger.mlflow.experiment_name` to choose
+another name. Experiments group tracked runs; registered models group numbered
+model versions. These are separate objects even when both are named `MNIST` or
+`PCB`. `best_model` is an alias for one registered version.
 
-Older experiment names such as `minst_project` and `minst_project_http` may remain
+Older experiment names such as `project_http`, `minst_project`, and `minst_project_http` may remain
 in an existing database. Names alone do not determine artifact access: check the
 experiment's stored artifact URI. Historical local paths are not automatically
 converted when changing a server URI. See [migration notes](migration.md) and

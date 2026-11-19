@@ -1,0 +1,11 @@
+defaults:
+  - default
+  - _self_
+
+classification_results:
+  _target_: src.callbacks.classification_results.ClassificationResults
+model_checkpoint:
+  monitor: ${model.monitor}
+  save_top_k: 1
+early_stopping:
+  monitor: ${model.monitor}

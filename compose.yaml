@@ -25,6 +25,7 @@ services:
         condition: service_healthy
     networks: [default, mlflow]
     volumes:
+      - ./data:/workspace/data
       - ./logs/train:/workspace/logs/train
       - ./logs/eval:/workspace/logs/eval
     environment:
@@ -32,6 +33,33 @@ services:
       MKL_NUM_THREADS: "2"
       MLFLOW_TRACKING_URI: http://mlflow:5000
     command: [uv, run, --locked, python, src/train.py]
+
+  debug:
+    profiles: [training]
+    image: mlcycle:uv
+    build:
+      context: .
+      dockerfile: Dockerfile/Dockerfile
+    gpus: all
+    shm_size: "2gb"
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    networks: [default, mlflow]
+    working_dir: /workspace
+    volumes:
+      - ./src:/workspace/src:ro
+      - ./configs:/workspace/configs:ro
+      - ./data:/workspace/data
+      - ./logs/train:/workspace/logs/train
+      - ./logs/eval:/workspace/logs/eval
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    command: [sleep, infinity]
 
   mlflow:
     profiles: [training]

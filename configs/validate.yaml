@@ -1,0 +1,7 @@
+defaults:
+  - eval
+  - _self_
+task_name: validate
+evaluation_stage: validate
+paths:
+  log_dir: ${paths.root_dir}/logs/eval

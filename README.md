@@ -78,7 +78,7 @@ not a quality guarantee. Omitting the epoch override uses a maximum of 500 epoch
 
 - Checkpoints: `logs/train/runs/<timestamp>/checkpoints/`, including `last.ckpt`.
 - Run configuration, logs, and results: `logs/train/runs/<timestamp>/`.
-- Metrics and model versions: the **`project_http`** experiment and **`MNIST`**
+- Metrics and model versions: the **`MNIST`** experiment and **`MNIST`**
   registered model in [MLflow](http://localhost:50001). The UI stays running.
 
 Inference can select a numeric model version or the `best_model` alias.
@@ -88,6 +88,7 @@ requirement. See [model selection](docs/architecture.md#model-selection-mismatch
 
 ## Further documentation
 
+- [VS Code breakpoint debugging in Docker](docs/development.md#vs-code-breakpoints-in-docker)
 - [MLflow setup, storage, and shared connectivity](docs/mlflow.md)
 - [Environment variables and Hydra configuration](docs/configuration.md)
 - [Architecture and model registration](docs/architecture.md)
@@ -95,3 +96,9 @@ requirement. See [model selection](docs/architecture.md#model-selection-mismatch
 - [Troubleshooting](docs/troubleshooting.md)
 - [Historical file-store migration](docs/migration.md)
 - [Vision inference repository](https://github.com/ohadjerci/vision-inference)
+
+## PCB classification and command recipes
+
+MNIST remains the default. See [PCB workflow](docs/pcb.md) for complete-group
+binary classification, configurable Hydra presets, and the `justfile` recipes
+for training, checkpoint validation/evaluation, tests, Ruff, and MyPy.
