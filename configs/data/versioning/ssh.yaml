@@ -1,0 +1,7 @@
+defaults:
+  - local
+  - _self_
+remote:
+  backend: ssh
+  name: ${oc.env:DVC_REMOTE_NAME,ssh}
+  url: ${oc.env:DVC_REMOTE_URL,""}

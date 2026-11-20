@@ -37,17 +37,18 @@ Run commands in the **training repository root** after cloning.
 2. **Create persistent directories and build the image.**
 
    ```bash
-   mkdir -p logs/train logs/eval logs/mlflow/db logs/mlflow/artifacts
+   mkdir -p data/.dvc-remote data/.dvc-cache data/.locks
+   mkdir -p logs/train logs/eval logs/prepare_dataset logs/reproduce logs/mlflow/db logs/mlflow/artifacts
+   export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
    docker compose build train
    ```
 
-3. **Give the container user access to the new directories.** These commands
-   change directory ownership, not existing model files. Review the
+3. **Give the MLflow container user access to its new directories.** Training and
+   dataset preparation use your configured host UID/GID and the directories you
+   created. This command changes directory ownership, not existing model files. Review the
    [storage guidance](docs/mlflow.md#storage-permissions) for an existing checkout.
 
    ```bash
-   docker compose run --rm --no-deps --user root --entrypoint sh train \
-     -c 'chown mlcycle:mlcycle /workspace/logs/train /workspace/logs/eval'
    docker compose run --rm --no-deps --user root --entrypoint sh mlflow \
      -c 'chown mlcycle:mlcycle /workspace/logs/mlflow /workspace/logs/mlflow/db /workspace/logs/mlflow/artifacts'
    ```
@@ -75,6 +76,28 @@ docker compose run --rm train uv run --locked python src/train.py \
 This downloads MNIST, trains, tests the best validation checkpoint, and registers
 a packaged `MNIST` model. A short run demonstrates the workflow; its accuracy is
 not a quality guarantee. Omitting the epoch override uses a maximum of 500 epochs.
+
+Training now first prepares an immutable dataset snapshot, uploads it to the selected
+DVC remote, and commits only its DVC metadata. Equivalent completed MLflow runs are
+reused when their model artifacts remain intact. The checkout's relevant source must
+be committed and the Docker image rebuilt; metadata commits never include source edits
+or unrelated staged work. Configure Git author/committer identity in the repository
+or environment before the first launch.
+
+```bash
+# Independent dataset preparation, without requesting a GPU.
+just prepare-data
+just prepare-data-pcb
+# Train even if a matching completed run exists.
+just train reproducibility.force_retrain=true
+# Restore code, data and settings into an isolated checkout and train again.
+just reproduce ORIGINAL_MLFLOW_RUN_ID
+```
+
+These recipes use Docker Compose. See [dataset configuration and reproduction](docs/configuration.md#dataset-versioning-and-reproduction)
+for storage permissions, SSH/S3 credentials, reuse, and recovery. Retain the referenced
+Git revisions, DVC objects and MLflow artifacts for as long as experiments must remain
+reproducible.
 
 - Checkpoints: `logs/train/runs/<timestamp>/checkpoints/`, including `last.ckpt`.
 - Run configuration, logs, and results: `logs/train/runs/<timestamp>/`.

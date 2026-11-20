@@ -12,13 +12,24 @@ Hydra composes the configuration, then `src/train.py` instantiates the data modu
 
 The custom ResNet classifies 10 digits using cross-entropy loss and Adam. Training and validation log epoch-level loss, accuracy, precision, recall, and F1. Validation loss controls learning-rate reduction, early stopping, and best-checkpoint selection. Checkpoints are saved every epoch, including `last.ckpt`, under `logs/train/runs/<timestamp>/checkpoints/`. After fitting, the best checkpoint is evaluated on the test split.
 
-The MLflow logger sends parameters, metrics, and artifacts through HTTP. The server at `http://localhost:50001` owns `logs/mlflow/db/mlflow.db` (SQLite tracking/registry) and `logs/mlflow/artifacts/` (proxied artifacts). Containers use `http://mlflow:5000` on the shared `vision-mlflow` network. Training mounts only host `logs/train/` and `logs/eval/` for outputs; the separate inference application never mounts training files. Ensure storage directories are writable by the container's non-root `mlcycle` user.
+The MLflow logger sends parameters, metrics, and artifacts through HTTP. The server at `http://localhost:50001` owns `logs/mlflow/db/mlflow.db` (SQLite tracking/registry) and `logs/mlflow/artifacts/` (proxied artifacts). Containers use `http://mlflow:5000` on the shared `vision-mlflow` network. Training mounts host `logs/train/` and `logs/eval/` for outputs and masks `logs/` on the separate Git checkout mount. Training and preparation use `LOCAL_UID` and `LOCAL_GID`. MLflow storage remains writable by the server's non-root `mlcycle` user, and inference continues to fetch artifacts over HTTP.
 
 The Hydra `registry` group controls publication after successful testing. Training publishes its best-validation-loss checkpoint; standalone evaluation publishes its evaluated checkpoint when `logger=mlflow` is selected. The current implementation exports a self-contained TorchScript network, registers it as `MNIST`, and moves `best_model` when finite `test/loss` strictly improves (ties keep the incumbent). This alias-promotion rule differs from the agreed validation-based selection requirement; see `docs/architecture.md#model-selection-mismatch`. Publishers run sequentially. Inference resolves the alias to an exact numeric version before downloading. Do not swallow publication errors or reintroduce imports from the training checkout into inference.
 
 New runs default to the selected `data.name` (`MNIST`, `PCB`, etc.) with server-proxied artifact URIs; `MLFLOW_EXPERIMENT_NAME` can override the experiment name. Original file history remains in `logs/mlflow/mlruns/`, with a verified backup under `logs/mlflow/backups/`; its metadata was migrated using MLflow 3.18's `migrate-filestore`. Migration preserves historical artifact paths rather than converting them to HTTP URIs. Preserve these files and back up tracking data before future migrations.
 
 ## Build, Test, and Development Commands
+
+Normal training now prepares immutable data through `src/data/prepare_dataset.py`,
+uploads it with DVC, and commits only allowlisted metadata before fitting. Hydra
+settings live under `configs/data/`; the data modules own snapshot export/loading,
+without a separate adapter layer. Relevant source must be committed and match the
+Docker image. Code and metadata revisions are distinct; metadata-only commits do
+not invalidate reuse. Keep dataset bytes in DVC and existing models in MLflow.
+Use `just prepare-data` / `just prepare-data-pcb` for the CPU-only data stage,
+`reproducibility.force_retrain=true` to bypass reuse, and `just reproduce RUN_ID`
+for isolated replay. Versioning tests must use temporary repositories/remotes;
+never automatically commit implementation changes or historical tracking data.
 
 When asked to run project code, always use Docker Compose, including training, evaluation, tests, and diagnostic scripts. Do not run project Python or uv commands directly on the host unless explicitly requested.
 

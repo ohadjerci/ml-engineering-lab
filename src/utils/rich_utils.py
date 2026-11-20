@@ -57,14 +57,17 @@ def print_config_tree(
             queue.append(field)
 
     # generate config tree from queue
+    from src.utils.logging_utils import sanitized
+
     for field in queue:
         branch = tree.add(field, style=style, guide_style=style)
 
         config_group = cfg[field]
         if isinstance(config_group, DictConfig):
-            branch_content = OmegaConf.to_yaml(config_group, resolve=resolve)
+            content = OmegaConf.to_container(config_group, resolve=resolve)
+            branch_content = OmegaConf.to_yaml(OmegaConf.create(sanitized(content)))
         else:
-            branch_content = str(config_group)
+            branch_content = str(sanitized(config_group))
 
         branch.add(rich.syntax.Syntax(branch_content, "yaml"))
 

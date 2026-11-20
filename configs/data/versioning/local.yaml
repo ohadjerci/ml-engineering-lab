@@ -1,0 +1,16 @@
+enabled: true
+repository_dir: ${oc.env:GIT_WORKTREE,${paths.root_dir}}
+snapshot_dir: data/snapshots
+cache_dir: ${oc.env:DVC_CACHE_DIR,${paths.data_dir}/.dvc-cache}
+coordination_dir: ${oc.env:PROVENANCE_LOCK_DIR,${paths.data_dir}/.locks}
+remote:
+  backend: local
+  name: ${oc.env:DVC_REMOTE_NAME,local}
+  url: ${oc.env:DVC_REMOTE_URL,${paths.data_dir}/.dvc-remote}
+upload: true
+git_commit: true
+git_push: false
+git_remote: null
+git_branch: null
+# A provenance file supplied only by the isolated reproduction command.
+restore: null

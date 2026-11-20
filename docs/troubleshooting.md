@@ -65,3 +65,39 @@ A two-batch smoke run checks integration, not useful digit recognition. Inspect
 training and validation curves, train longer as appropriate, and use input images
 matching the inference preprocessing. Do not treat softmax confidence as a
 calibrated correctness guarantee.
+# Dataset publication and reuse
+
+- **`PermissionError` under `/workspace/logs/train/runs` or `/workspace/logs/eval/runs`:**
+  Earlier containers may have created these directories under the image user's UID.
+  Give the configured `LOCAL_UID` and `LOCAL_GID` ownership of the output directories
+  and their existing `runs` or `multiruns` parents. Leave individual historical run
+  directories and `logs/mlflow/` alone. For the default host UID/GID, use:
+
+  ```bash
+  docker compose run --rm --no-deps --user root --entrypoint sh train -ec '
+    for dir in /workspace/logs/train /workspace/logs/eval; do
+      chown "$1" "$dir"
+      for child in runs multiruns; do
+        if test -d "$dir/$child"; then chown "$1" "$dir/$child"; fi
+      done
+    done
+  ' sh "$(id -u):$(id -g)"
+  ```
+
+- **Uncommitted source / stale Docker image:** commit relevant code/configuration
+  and rebuild. For exploratory debugging explicitly disable versioning.
+- **Git identity or write permissions:** configure repository-local Git identity or
+  standard author/committer environment variables, and set `LOCAL_UID`/`LOCAL_GID`.
+  Do not discard unrelated staged work to recover.
+- **DVC upload failure:** check the selected remote, provider credentials and mount
+  permissions, then rerun preparation. Training has not started. Existing snapshots
+  and metadata journals support retries.
+- **Owned metadata has user changes:** inspect the named file and resolve the edit;
+  automatic publication refuses to overwrite it.
+- **Expected run is not reused:** inspect its completion tag/receipt, model artifacts,
+  dataset name/content, initialized weights, source and environment fingerprints.
+  Legacy/incomplete/failed runs are excluded. Use `reproducibility.force_retrain=true`
+  when new training is intended.
+- **Historical reproduction unsupported:** the recorded code must contain the replay
+  entry point and all referenced Git/DVC/MLflow artifacts must still exist. The tool
+  does not substitute current training code.

@@ -1,5 +1,19 @@
 # MLflow setup and shared connectivity
 
+Versioned training adds `provenance/data_version.json`, small DVC pointers, resolved
+configuration, source identities, `uv.lock`, runtime information, initialization
+weights/checkpoints, and a completion receipt. Existing `code/`, `checkpoints/`, PCB
+`results/`, model flavor files and registry publication remain in place. Dataset
+images/annotations are stored only in DVC. MLflow dataset inputs identify each
+split; the full dataset SHA-256 is stored in tags/provenance/source metadata because
+MLflow 3.18 limits its input digest display field to 36 characters.
+
+MLflow 3 stores published models separately from run artifacts. Reuse follows the
+recorded `models:/...` URI, verifies model/checkpoint files, and requires an explicit
+completion receipt as well as `FINISHED`. Reuse never registers a new version or
+promotes an alias. Different dataset names and changed content remain searchable
+even when experiments are shared. See [dataset workflow](configuration.md#dataset-versioning-and-reproduction).
+
 Run commands from the **training repository root**. For a fresh installation,
 complete the [README quick start](../README.md#quick-start), including storage
 permissions, before starting the server.
@@ -50,16 +64,19 @@ checkout nor a mount of this project's logs.
 
 ## Storage permissions
 
-The image creates a non-root `mlcycle` user; its UID need not match your host UID.
-The README's one-time commands assign only the new storage directories to that
-user. On an existing installation, inspect ownership and arrange write access
+The image creates a non-root `mlcycle` user for MLflow; its UID need not match your
+host UID. Training/preparation instead use `LOCAL_UID`/`LOCAL_GID` so automatic Git
+metadata operations do not create files owned by another user. The README's
+one-time ownership command applies only to MLflow storage. On an existing
+installation, inspect ownership and arrange write access
 before running them. Changing top-level directory ownership does not repair
 permissions of existing nested files. Do not solve this by making all files
 world-writable or deleting old experiments.
 
-Training persists datasets in `data/` and outputs in `logs/train/` and `logs/eval/`;
-it cannot directly access
-the server's database or artifacts. Custom task names/output paths need their own
+Training persists datasets in `data/` and outputs in `logs/train/` and `logs/eval/`.
+The separate checkout mount masks `logs/`. Preparation mounts its own output
+directories separately under `/workspace/logs/`. Training cannot directly access the server's database or
+artifacts. Custom task names/output paths need their own
 mount if their outputs must survive container removal.
 
 ## Experiments and models

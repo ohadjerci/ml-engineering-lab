@@ -18,6 +18,18 @@ train *args:
 train-pcb *args:
     docker compose run --build --rm train uv run --locked python src/train.py experiment=pcb "$@"
 
+# Prepare/version data without starting GPU training; append Hydra overrides.
+prepare-data *args:
+    docker compose run --build --rm prepare_dataset "$@"
+
+# Prepare a PCB-format dataset without training.
+prepare-data-pcb *args:
+    docker compose run --build --rm prepare_dataset data=pcb "$@"
+
+# Restore recorded code/data/settings into a separate checkout and train again.
+reproduce run_id:
+    bash scripts/reproduce.sh "$1"
+
 # Validate an explicit MNIST checkpoint (path inside the container).
 validate checkpoint *args:
     docker compose run --build --rm train uv run --locked python src/validate.py "ckpt_path=$1" "${@:2}"

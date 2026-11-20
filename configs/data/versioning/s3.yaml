@@ -1,0 +1,7 @@
+defaults:
+  - local
+  - _self_
+remote:
+  backend: s3
+  name: ${oc.env:DVC_REMOTE_NAME,s3}
+  url: ${oc.env:DVC_REMOTE_URL,""}

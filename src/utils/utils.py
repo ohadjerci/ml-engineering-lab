@@ -1,9 +1,16 @@
+import fcntl
+import re
+import subprocess
 import warnings
+from contextlib import contextmanager
 from importlib.util import find_spec
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Iterator
+from urllib.parse import urlsplit
 
 from omegaconf import DictConfig
 
+from src.data.components import digest, file_hash
 from src.utils import pylogger, rich_utils
 
 log = pylogger.get_pylogger(__name__)
@@ -104,7 +111,112 @@ def get_metric_value(metric_dict: dict, metric_name: str | None) -> float | None
             "Make sure `optimized_metric` name in `hparams_search` config is correct!"
         )
 
-    metric_value = metric_dict[metric_name].item()
+    value = metric_dict[metric_name]
+    metric_value = value.item() if hasattr(value, "item") else float(value)
     log.info(f"Retrieved metric value! <{metric_name}={metric_value}>")
 
     return metric_value
+
+
+SOURCE_PATHS = ("src", "configs", "pyproject.toml", "uv.lock", "Dockerfile", "compose.yaml")
+
+
+@contextmanager
+def file_lock(path: Path) -> Iterator[None]:
+    """Locks coordinate Linux processes sharing the same local filesystem."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a+") as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(stream, fcntl.LOCK_UN)
+
+
+def command(root: Path, *args: str, env: dict[str, str] | None = None) -> str:
+    result = subprocess.run(args, cwd=root, env=env, text=True, capture_output=True, check=False)
+    if result.returncode:
+        # Transport output may contain credentials. Keep it out of Hydra/MLflow logs.
+        raise RuntimeError(
+            f"{args[0]} {args[1] if len(args) > 1 else ''} failed "
+            f"(exit {result.returncode}). Check repository permissions, credentials and "
+            "remote connectivity; retry the dataset stage before training."
+        )
+    return result.stdout.strip()
+
+
+def git(root: Path, *args: str) -> str:
+    try:
+        return command(root, "git", "-c", f"safe.directory={root.resolve()}", *args)
+    except RuntimeError:
+        raise RuntimeError(
+            f"Git {args[0]} failed. Check repository access, Git identity and remote credentials; "
+            "resolve the problem and rerun dataset preparation."
+        ) from None
+
+
+def public_location(value: str) -> str:
+    """Require credential-free references, allowing an SSH username."""
+    parsed = urlsplit(value)
+    if parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("Remote/repository URLs must not contain credentials or query strings")
+    if parsed.username and parsed.scheme not in {"ssh", ""}:
+        raise ValueError("Use provider credentials instead of credentials in a URL")
+    return value
+
+
+def source_provenance(repository: Path, executed_root: Path) -> dict:
+    revision = git(repository, "rev-parse", "HEAD")
+    dirty = git(repository, "status", "--porcelain", "--untracked-files=all", "--", *SOURCE_PATHS)
+    if dirty:
+        raise RuntimeError(
+            "Relevant source/configuration is uncommitted. Commit it and rebuild the Docker "
+            "image before versioned training; use versioning.enabled=false for exploration."
+        )
+    files = git(repository, "ls-files", "--", *SOURCE_PATHS).splitlines()
+    if not files:
+        raise RuntimeError("Cannot identify committed training source")
+    hashes = {}
+    for relative in files:
+        expected = file_hash(repository / relative)
+        actual = executed_root / relative
+        if not actual.is_file() or file_hash(actual) != expected:
+            raise RuntimeError(f"Executed source differs from Git: {relative}. Rebuild the image.")
+        hashes[relative] = expected
+    # Repository URL can be absent for a local-only repo; do not invent a remote.
+    remotes = git(repository, "remote").splitlines()
+    reference = git(repository, "remote", "get-url", "origin") if "origin" in remotes else ""
+    public_location(reference)
+    return {
+        "revision": revision,
+        "identity": digest(hashes),
+        "files": hashes,
+        "repository": reference,
+    }
+
+
+def commit_metadata(repository: Path, paths: list[str]) -> str:
+    """Commit exactly these generated paths, preserving unrelated index entries."""
+    if not paths or any(Path(p).is_absolute() or ".." in Path(p).parts for p in paths):
+        raise ValueError("Metadata commit requires explicit repository-relative paths")
+    git(repository, "symbolic-ref", "--quiet", "HEAD")
+    try:
+        git(repository, "var", "GIT_AUTHOR_IDENT")
+        git(repository, "var", "GIT_COMMITTER_IDENT")
+    except RuntimeError:
+        raise RuntimeError(
+            "Configure Git user.name/user.email or author/committer environment variables before publishing data"
+        ) from None
+    changed = git(repository, "status", "--porcelain", "--", *paths)
+    if changed:
+        git(repository, "add", "--", *paths)
+        git(repository, "commit", "--only", "-m", "Version dataset snapshot", "--", *paths)
+    return git(repository, "rev-parse", "HEAD")
+
+
+def validate_remote(name: str, url: str) -> None:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name):
+        raise ValueError("DVC remote name must contain letters, digits, underscores or hyphens")
+    if not url:
+        raise ValueError("Set the selected DVC remote URL before preparing data")
+    public_location(url)

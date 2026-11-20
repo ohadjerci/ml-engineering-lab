@@ -19,6 +19,15 @@ The separately installable inference application lives in
 
 ## Data and training flow
 
+Versioned training first verifies committed executed source and calls the shared
+`src/data/prepare_dataset.py` implementation. Data modules export an immutable
+snapshot and reload its saved files/splits. DVC stores dataset contents; Git stores
+only pointers. MLflow stores searchable dataset versions, provenance, and the
+existing model artifacts. Code and dataset-metadata revisions are recorded
+separately, and a content-based fingerprint allows reuse across metadata commits.
+See [configuration](configuration.md#dataset-versioning-and-reproduction) for the
+independent data stage, storage and reproduction command.
+
 1. Hydra composes configuration and instantiates the data module, Lightning model,
    callbacks, loggers, and trainer. The default global seed is 1.
 2. The data module downloads MNIST if missing, combines the original train/test
