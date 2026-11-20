@@ -109,6 +109,25 @@ Inference can select a numeric model version or the `best_model` alias.
 promotion uses **test loss**, contrary to the agreed validation-based promotion
 requirement. See [model selection](docs/architecture.md#model-selection-mismatch).
 
+### Training with uncommitted changes
+
+Use `just train-dev` for MNIST or `just train-pcb-dev` for PCB while editing code
+or configuration. These recipes rebuild the image with your local changes and
+set `versioning.enabled=false`. The run skips DVC snapshots, automatic Git metadata
+commits, and experiment reuse. The usual MLflow logging still applies.
+
+```bash
+just train-dev
+just train-pcb-dev trainer=cpu trainer.precision=32-true trainer.max_epochs=1
+# Equivalent without the shortcut:
+just train-pcb versioning.enabled=false
+```
+
+Use `just train` or `just train-pcb` after committing relevant source and
+configuration to enable versioning again. Local commits are enough for training.
+If you only need to version the dataset, `just prepare-data-pcb` can run while
+source edits are uncommitted and commits only the dataset metadata.
+
 ## Further documentation
 
 - [VS Code breakpoint debugging in Docker](docs/development.md#vs-code-breakpoints-in-docker)

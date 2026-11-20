@@ -10,13 +10,21 @@ default:
 build:
     docker compose build tests
 
-# Train MNIST; append Hydra overrides (e.g. trainer=cpu trainer.max_epochs=2).
+# Train MNIST with dataset versioning. Relevant source and config must be committed.
 train *args:
     docker compose run --build --rm train uv run --locked python src/train.py "$@"
 
-# Train PCB using the configured data/REALIAD directory.
+# Train PCB with dataset versioning. Relevant source and config must be committed.
 train-pcb *args:
     docker compose run --build --rm train uv run --locked python src/train.py experiment=pcb "$@"
+
+# Train MNIST with uncommitted edits. Skip dataset versioning and experiment reuse.
+train-dev *args:
+    just train versioning.enabled=false "$@"
+
+# Train PCB with uncommitted edits. Skip dataset versioning and experiment reuse.
+train-pcb-dev *args:
+    just train-pcb versioning.enabled=false "$@"
 
 # Prepare/version data without starting GPU training; append Hydra overrides.
 prepare-data *args:
