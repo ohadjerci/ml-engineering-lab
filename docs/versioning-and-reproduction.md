@@ -106,6 +106,17 @@ edits are uncommitted. Versioned training requires committed relevant source.
 
 ## What just reproduce does
 
+### Find the original run ID
+
+Open [MLflow](http://localhost:50001), choose the experiment (`MNIST`, `PCB`, or
+your configured experiment), and open the training run to replay. Copy its **Run ID**
+from the run details. This is a 32-character hexadecimal identifier, not the run
+name, experiment ID, or registered model version. Replace
+`ORIGINAL_MLFLOW_RUN_ID` below with that value. Choose a versioned run containing
+the required `provenance/` artifacts; legacy or `train-dev` runs may not support replay.
+
+### Replay steps
+
 Start MLflow and supply the original 32-character MLflow run ID:
 
 ```bash
@@ -160,8 +171,8 @@ not just disposable console logs. Preserve historical MLflow storage described i
 
 ## Permission recovery
 
-For a fresh clone, create persistent directories as your normal user before
-starting Docker, following the [quick start](../README.md#quick-start). Export
+For a fresh clone, use `bash scripts/setup.sh` as your normal user, following the
+[setup guide](setup.md). It persists your host IDs in `.env`. For manual setup, export
 `LOCAL_UID` and `LOCAL_GID` in each shell that runs Compose, or configure them in
 your ignored `.env`. MLflow has its separate server-user ownership step.
 

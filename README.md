@@ -36,38 +36,26 @@ Run commands in the **training repository root** after cloning.
    cd ml-engineering-lab
    ```
 
-2. **Create persistent directories and build the image.**
+2. **Initialize storage, build the image, and start MLflow.**
 
    ```bash
-   mkdir -p data/.dvc-remote data/.dvc-cache data/.locks
-   mkdir -p logs/train logs/eval logs/prepare_dataset logs/reproduce logs/mlflow/db logs/mlflow/artifacts
-   export LOCAL_UID=$(id -u) LOCAL_GID=$(id -g)
-   docker compose build train
+   bash scripts/setup.sh
    ```
 
-3. **Give the MLflow container user access to its directories.**
-   This command changes directory ownership, not existing model files. Review the
-   [storage guidance](docs/mlflow.md#storage-permissions) for an existing checkout.
+   Run as your normal host user. Setup saves your UID/GID in the ignored `.env`,
+   preserves other settings, and waits for [MLflow](http://localhost:50001) to be healthy.
+   See [setup explained](docs/setup.md) for every command, prerequisites, and recovery.
+
+3. **Train.**
 
    ```bash
-   docker compose run --rm --no-deps --user root --entrypoint sh mlflow \
-     -c 'chown mlcycle:mlcycle /workspace/logs/mlflow /workspace/logs/mlflow/db /workspace/logs/mlflow/artifacts'
+   just train
+   # Without just:
+   docker compose run --build --rm train
    ```
 
-   For a fresh clone, preparation and training use the directories created by your
-   host user in step 2. If Docker previously created them, or you deleted storage,
-   follow [permission recovery](docs/versioning-and-reproduction.md#permission-recovery).
-
-4. **Start MLflow in the background.**
-
-   ```bash
-   docker compose up -d mlflow
-   ```
-
-   Open [MLflow](http://localhost:50001). Training waits for the server to become
-   healthy and starts it automatically if needed.
-
-5. **Run the first training example** shown below.
+   Configure Git identity if setup reports it missing. The first default run can
+   train for up to 500 epochs; use the bounded example below for a quick first run.
 
 ## Training example and results
 
@@ -140,6 +128,7 @@ GPU verification. The PR report shows **Coverage**, **PR coverage**, **Mypy**, a
 
 ## Further documentation
 
+- [Setup explained and manual commands](docs/setup.md)
 - [Versioning, dataset storage, and training reproduction](docs/versioning-and-reproduction.md)
 - [VS Code breakpoint debugging in Docker](docs/development.md#vs-code-breakpoints-in-docker)
 - [MLflow setup, storage, and shared connectivity](docs/mlflow.md)

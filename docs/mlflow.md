@@ -66,8 +66,8 @@ checkout nor a mount of this project's logs.
 
 The image creates a non-root `mlcycle` user for MLflow; its UID need not match your
 host UID. Training/preparation instead use `LOCAL_UID`/`LOCAL_GID` so automatic Git
-metadata operations do not create files owned by another user. The README's
-one-time ownership command applies only to MLflow storage. On an existing
+metadata operations do not create files owned by another user. The
+[setup script](setup.md) initializes MLflow directory ownership separately. On an existing
 installation, inspect ownership and arrange write access
 before running them. Changing top-level directory ownership does not repair
 permissions of existing nested files. Do not solve this by making all files
