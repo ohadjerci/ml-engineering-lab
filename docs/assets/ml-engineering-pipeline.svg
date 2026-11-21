@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1570" viewBox="0 0 1600 1570" role="img" aria-labelledby="title desc"><title id="title">End-to-end ML engineering pipeline</title><desc id="desc">GitHub Actions checks code independently. Local Docker preparation versions datasets in Git and DVC. Training logs to MLflow and publishes models for inference. Replay restores historical code, data, configuration, environment and initialization in an isolated checkout. Deployment remains a roadmap.</desc><defs><marker id="teal" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#0e7376"/></marker><marker id="purple" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#7650a5"/></marker><marker id="blue" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#2865aa"/></marker></defs><rect width="1600" height="1570" fill="#fcfbf8"/><g font-family="DejaVu Sans, sans-serif">
+<text x="800" y="55" fill="#102331" font-size="42" font-weight="800" text-anchor="middle">END-TO-END ML ENGINEERING</text>
+<text x="800" y="89" fill="#526477" font-size="23" font-weight="400" text-anchor="middle">Code quality → dataset versions → training → registry → inference</text>
+<rect x="32" y="116" width="1536" height="250" rx="18" fill="#eef8f7" stroke="#0b6269" stroke-width="1.5" />
+<rect x="32" y="116" width="1536" height="48" rx="18" fill="#0b6269" stroke="#0b6269" stroke-width="1.5" />
+<path d="M32 141h1536v23H32z" fill="#0b6269"/>
+<text x="52" y="148" fill="#fff" font-size="22" font-weight="750" text-anchor="start">01 / GITHUB ACTIONS — CONTINUOUS INTEGRATION</text>
+<rect x="54" y="187" width="267" height="108" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<rect x="68" y="203" width="34" height="34" rx="9" fill="#0e7376" stroke="#0e7376" stroke-width="1.5" />
+<text x="85" y="227" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">1</text>
+<text x="116" y="217" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Push / PR / manual</text>
+<text x="116" y="243" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Push: every branch</text>
+<text x="116" y="266" fill="#243648" font-size="17" font-weight="400" text-anchor="start">PR: target main</text>
+<rect x="350" y="187" width="283" height="108" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<rect x="364" y="203" width="34" height="34" rx="9" fill="#0e7376" stroke="#0e7376" stroke-width="1.5" />
+<text x="381" y="227" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">2</text>
+<text x="412" y="217" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Python 3.12 + uv</text>
+<text x="412" y="243" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Lockfile · locked install</text>
+<text x="412" y="266" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Installed dependency check</text>
+<rect x="662" y="187" width="420" height="108" rx="12" fill="#fff" stroke="#7650a5" stroke-width="1.5" />
+<rect x="676" y="203" width="34" height="34" rx="9" fill="#7650a5" stroke="#7650a5" stroke-width="1.5" />
+<text x="693" y="227" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">3</text>
+<text x="724" y="217" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Quality checks</text>
+<text x="724" y="243" fill="#243648" font-size="17" font-weight="400" text-anchor="start">CPU pytest, no sweeps · Ruff</text>
+<text x="724" y="266" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Core MyPy · line + branch coverage</text>
+<rect x="1111" y="187" width="433" height="108" rx="12" fill="#fff" stroke="#2865aa" stroke-width="1.5" />
+<rect x="1125" y="203" width="34" height="34" rx="9" fill="#2865aa" stroke="#2865aa" stroke-width="1.5" />
+<text x="1142" y="227" fill="#fff" font-size="18" font-weight="700" text-anchor="middle">4</text>
+<text x="1173" y="217" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Reports and status</text>
+<text x="1173" y="243" fill="#243648" font-size="17" font-weight="400" text-anchor="start">JUnit + coverage + numeric reports</text>
+<text x="1173" y="266" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Coverage · PR coverage · Mypy · Ruff</text>
+<path d="M321 241H348" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="348,241 338,236 338,246" fill="#0e7376"/>
+<path d="M633 241H660" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="660,241 650,236 650,246" fill="#0e7376"/>
+<path d="M1082 241H1109" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="1109,241 1099,236 1099,246" fill="#0e7376"/>
+<text x="62" y="336" fill="#7650a5" font-size="18" font-weight="650" text-anchor="start">Failure → fix and push again</text>
+<text x="1540" y="336" fill="#526477" font-size="17" font-weight="400" text-anchor="end">Hosted CPU verification · independent of training · no automatic deployment</text>
+<text x="800" y="411" fill="#152536" font-size="24" font-weight="750" text-anchor="middle">EXPLICIT LOCAL RUNS — DOCKER COMPOSE</text>
+<rect x="32" y="439" width="1536" height="246" rx="18" fill="#eef8f7" stroke="#0b6269" stroke-width="1.5" />
+<rect x="32" y="439" width="1536" height="48" rx="18" fill="#0b6269" stroke="#0b6269" stroke-width="1.5" />
+<path d="M32 464h1536v23H32z" fill="#0b6269"/>
+<text x="52" y="471" fill="#fff" font-size="22" font-weight="750" text-anchor="start">02 / DATASET VERSIONING — GIT + DVC</text>
+<rect x="54" y="511" width="340" height="120" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<text x="72" y="541" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Source dataset</text>
+<text x="72" y="567" fill="#243648" font-size="17" font-weight="400" text-anchor="start">MNIST or PCB</text>
+<text x="72" y="590" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Images · labels · split settings</text>
+<rect x="428" y="511" width="356" height="120" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<text x="446" y="541" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Immutable snapshot</text>
+<text x="446" y="567" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Files + manifest + exact splits</text>
+<text x="446" y="590" fill="#243648" font-size="17" font-weight="400" text-anchor="start">New content / split → new version</text>
+<rect x="818" y="511" width="340" height="120" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<text x="836" y="541" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Upload to DVC remote</text>
+<text x="836" y="567" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Dataset bytes by content hash</text>
+<text x="836" y="590" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Unchanged files stored once</text>
+<rect x="1192" y="511" width="352" height="120" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<text x="1210" y="541" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Git metadata commit</text>
+<text x="1210" y="567" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Small .dvc pointer</text>
+<text x="1210" y="590" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Code revision recorded separately</text>
+<path d="M394 571H426" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="426,571 416,566 416,576" fill="#0e7376"/>
+<path d="M784 571H816" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="816,571 806,566 806,576" fill="#0e7376"/>
+<path d="M1158 571H1190" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="1190,571 1180,566 1180,576" fill="#0e7376"/>
+<text x="62" y="661" fill="#526477" font-size="17" font-weight="400" text-anchor="start">Local snapshots can duplicate files; cache and remote deduplicate unchanged contents.</text>
+<text x="1540" y="661" fill="#526477" font-size="17" font-weight="600" text-anchor="end">Default remote: data/.dvc-remote</text>
+<rect x="32" y="719" width="476" height="368" rx="18" fill="#eef8f7" stroke="#0b6269" stroke-width="1.5" />
+<rect x="32" y="719" width="476" height="48" rx="18" fill="#0b6269" stroke="#0b6269" stroke-width="1.5" />
+<path d="M32 744h476v23H32z" fill="#0b6269"/>
+<text x="52" y="751" fill="#fff" font-size="22" font-weight="750" text-anchor="start">03 / TRAINING LAB</text>
+<rect x="562" y="719" width="476" height="368" rx="18" fill="#f3eef9" stroke="#684393" stroke-width="1.5" />
+<rect x="562" y="719" width="476" height="48" rx="18" fill="#684393" stroke="#684393" stroke-width="1.5" />
+<path d="M562 744h476v23H562z" fill="#684393"/>
+<text x="582" y="751" fill="#fff" font-size="22" font-weight="750" text-anchor="start">04 / SHARED MLFLOW</text>
+<rect x="1092" y="719" width="476" height="368" rx="18" fill="#edf4fc" stroke="#215e9d" stroke-width="1.5" />
+<rect x="1092" y="719" width="476" height="48" rx="18" fill="#215e9d" stroke="#215e9d" stroke-width="1.5" />
+<path d="M1092 744h476v23H1092z" fill="#215e9d"/>
+<text x="1112" y="751" fill="#fff" font-size="22" font-weight="750" text-anchor="start">05 / VISION INFERENCE</text>
+<rect x="52" y="788" width="436" height="74" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<text x="70" y="818" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Load versioned snapshot</text>
+<text x="70" y="844" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Committed source · Hydra settings</text>
+<rect x="52" y="885" width="436" height="74" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<text x="70" y="915" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Train + validate, or reuse</text>
+<text x="70" y="941" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Matching complete run can skip fitting</text>
+<rect x="52" y="982" width="436" height="82" rx="12" fill="#fff" stroke="#0e7376" stroke-width="1.5" />
+<text x="70" y="1012" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Test best checkpoint</text>
+<text x="70" y="1038" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Checkpoint selected by validation loss</text>
+<path d="M270 862V883" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="270,883 275,873 265,873" fill="#0e7376"/>
+<path d="M270 959V980" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="270,980 275,970 265,970" fill="#0e7376"/>
+<rect x="582" y="788" width="436" height="123" rx="12" fill="#fff" stroke="#7650a5" stroke-width="1.5" />
+<text x="600" y="818" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Experiment tracking</text>
+<text x="600" y="844" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Metrics · resolved config · Git revisions</text>
+<text x="600" y="867" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Dataset identity · splits · environment</text>
+<text x="600" y="890" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Initial weights / starting checkpoint</text>
+<rect x="582" y="954" width="436" height="110" rx="12" fill="#fff" stroke="#7650a5" stroke-width="1.5" />
+<text x="600" y="984" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Package + register</text>
+<text x="600" y="1010" fill="#243648" font-size="17" font-weight="400" text-anchor="start">TorchScript · labels · preprocessing</text>
+<text x="600" y="1033" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Numeric model version + best_model</text>
+<path d="M800 911V952" fill="none" stroke="#7650a5" stroke-width="3" stroke-linejoin="round" />
+<polygon points="800,952 805,942 795,942" fill="#7650a5"/>
+<rect x="1112" y="788" width="436" height="74" rx="12" fill="#fff" stroke="#2865aa" stroke-width="1.5" />
+<text x="1130" y="818" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Resolve + download</text>
+<text x="1130" y="844" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Exact numeric version · HTTP artifacts</text>
+<rect x="1112" y="885" width="436" height="74" rx="12" fill="#fff" stroke="#2865aa" stroke-width="1.5" />
+<text x="1130" y="915" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Preprocess + predict</text>
+<text x="1130" y="941" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Independent model loading</text>
+<rect x="1112" y="982" width="436" height="82" rx="12" fill="#fff" stroke="#2865aa" stroke-width="1.5" />
+<text x="1130" y="1012" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Serve predictions</text>
+<text x="1130" y="1038" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Digit · confidence · model version</text>
+<path d="M1330 862V883" fill="none" stroke="#2865aa" stroke-width="3" stroke-linejoin="round" />
+<polygon points="1330,883 1335,873 1325,873" fill="#2865aa"/>
+<path d="M1330 959V980" fill="none" stroke="#2865aa" stroke-width="3" stroke-linejoin="round" />
+<polygon points="1330,980 1335,970 1325,970" fill="#2865aa"/>
+<path d="M508 846H580" fill="none" stroke="#7650a5" stroke-width="3" stroke-linejoin="round" />
+<polygon points="580,846 570,841 570,851" fill="#7650a5"/>
+<text x="535" y="830" fill="#7650a5" font-size="15" font-weight="650" text-anchor="middle">log</text>
+<path d="M508 1016H580" fill="none" stroke="#7650a5" stroke-width="3" stroke-linejoin="round" />
+<polygon points="580,1016 570,1011 570,1021" fill="#7650a5"/>
+<text x="535" y="1000" fill="#7650a5" font-size="13" font-weight="650" text-anchor="middle">publish</text>
+<path d="M1038 1009H1065V825H1110" fill="none" stroke="#7650a5" stroke-width="3" stroke-linejoin="round" />
+<polygon points="1110,825 1100,820 1100,830" fill="#7650a5"/>
+<path d="M270 685V717" fill="none" stroke="#0e7376" stroke-width="3" stroke-linejoin="round" />
+<polygon points="270,717 275,707 265,707" fill="#0e7376"/>
+<text x="285" y="708" fill="#526477" font-size="15" font-weight="400" text-anchor="start">snapshot + recorded source</text>
+<rect x="32" y="1121" width="1536" height="245" rx="18" fill="#f3eef9" stroke="#684393" stroke-width="1.5" />
+<rect x="32" y="1121" width="1536" height="48" rx="18" fill="#684393" stroke="#684393" stroke-width="1.5" />
+<path d="M32 1146h1536v23H32z" fill="#684393"/>
+<text x="52" y="1153" fill="#fff" font-size="22" font-weight="750" text-anchor="start">06 / REPRODUCE A RUN — RESTORE INPUTS, THEN TRAIN AGAIN</text>
+<rect x="54" y="1194" width="285" height="103" rx="12" fill="#fff" stroke="#7650a5" stroke-width="1.5" />
+<text x="72" y="1224" fill="#152536" font-size="20" font-weight="700" text-anchor="start">just reproduce RUN_ID</text>
+<text x="72" y="1250" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Download MLflow provenance</text>
+<text x="72" y="1273" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Config + initialization</text>
+<rect x="373" y="1194" width="354" height="103" rx="12" fill="#fff" stroke="#7650a5" stroke-width="1.5" />
+<text x="391" y="1224" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Historical Git checkout</text>
+<text x="391" y="1250" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Code SHA + metadata SHA</text>
+<text x="391" y="1273" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Verify source and pointer hashes</text>
+<rect x="761" y="1194" width="339" height="103" rx="12" fill="#fff" stroke="#7650a5" stroke-width="1.5" />
+<text x="779" y="1224" fill="#152536" font-size="20" font-weight="700" text-anchor="start">DVC pull + Docker build</text>
+<text x="779" y="1250" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Restore dataset; verify splits</text>
+<text x="779" y="1273" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Historical Dockerfile + uv.lock</text>
+<rect x="1134" y="1194" width="410" height="103" rx="12" fill="#fff" stroke="#7650a5" stroke-width="1.5" />
+<text x="1152" y="1224" fill="#152536" font-size="20" font-weight="700" text-anchor="start">Fresh, linked MLflow run</text>
+<text x="1152" y="1250" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Check environment + initial weights</text>
+<text x="1152" y="1273" fill="#243648" font-size="17" font-weight="400" text-anchor="start">Force retraining · current checkout intact</text>
+<path d="M339 1245H371" fill="none" stroke="#7650a5" stroke-width="3" stroke-linejoin="round" />
+<polygon points="371,1245 361,1240 361,1250" fill="#7650a5"/>
+<path d="M727 1245H759" fill="none" stroke="#7650a5" stroke-width="3" stroke-linejoin="round" />
+<polygon points="759,1245 749,1240 749,1250" fill="#7650a5"/>
+<path d="M1100 1245H1132" fill="none" stroke="#7650a5" stroke-width="3" stroke-linejoin="round" />
+<polygon points="1132,1245 1122,1240 1122,1250" fill="#7650a5"/>
+<text x="62" y="1339" fill="#526477" font-size="18" font-weight="400" text-anchor="start">Retain Git commits + DVC objects + MLflow database/artifacts. The default local remote is not an independent backup.</text>
+<rect x="32" y="1400" width="1536" height="95" rx="16" fill="#fcfbf8" stroke="#7b8793" stroke-width="1.5" stroke-dasharray="7 5"/>
+<text x="800" y="1433" fill="#152536" font-size="21" font-weight="750" text-anchor="middle">CD / PRODUCTION ROADMAP — NOT AUTOMATED</text>
+<text x="800" y="1470" fill="#526477" font-size="20" font-weight="400" text-anchor="middle">Release image → Deploy + smoke checks → Monitor + alerts → Rollback / retrain</text>
+<text x="800" y="1535" fill="#684393" font-size="18" font-weight="500" text-anchor="middle">Current alias promotion uses test loss; validation-based promotion remains to be implemented.</text>
+</g></svg>

@@ -129,28 +129,10 @@ reuse, and replay requirements.
 
 ## Pipeline
 
-```mermaid
-flowchart TD
-    Edit[Code and configuration] --> Git[Git commit]
-    Input[Source dataset] --> Prepare[Prepare immutable snapshot and splits]
-    Prepare --> DVC[DVC remote: dataset contents]
-    Prepare --> Pointer[Git commit: DVC pointer]
-    Git --> Train[Docker training or matching-run reuse]
-    Pointer --> Train
-    DVC --> Train
-    Train --> MLflow[MLflow: metrics, config, provenance, initial weights, models]
-    MLflow --> Registry[Model registry]
-    Registry --> Inference[Independent inference]
-    MLflow --> Replay[just reproduce RUN_ID]
-    Git --> Replay
-    Pointer --> Replay
-    DVC --> Replay
-    Replay --> Historical[Isolated historical checkout and Docker rebuild]
-    Historical --> NewRun[Fresh training and linked MLflow run]
-    Git --> CI[GitHub Actions: pushes, PRs to main, manual runs]
-    CI --> Checks[CPU tests, lockfile, dependencies, Ruff, MyPy, coverage]
-    Checks --> Reports[Four quality badges and report artifacts]
-```
+[![End-to-end ML engineering: CI, dataset versioning, training, MLflow, inference, and isolated replay](docs/assets/ml-engineering-pipeline.svg)](docs/assets/ml-engineering-pipeline.svg)
+
+Click the diagram to view it at full size. See [versioning and reproduction](docs/versioning-and-reproduction.md)
+for the storage layout and replay steps.
 
 CI verifies changes independently of training; it does not deploy models or run
 GPU verification. The PR report shows **Coverage**, **PR coverage**, **Mypy**, and
