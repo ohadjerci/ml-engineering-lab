@@ -2,8 +2,12 @@
 .agents
 .codex
 .aws
+compose.private.yaml
 .env
 .env.*
+!.env.example
+configs/local/*
+!configs/local/.gitkeep
 .venv
 venv
 env

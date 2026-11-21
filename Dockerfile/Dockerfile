@@ -11,7 +11,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates python3 python3-venv python3-dev \
-        build-essential git libgl1 libglib2.0-0 libgomp1 \
+        build-essential git openssh-client libgl1 libglib2.0-0 libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /workspace
 

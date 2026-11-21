@@ -12,13 +12,24 @@ Hydra composes the configuration, then `src/train.py` instantiates the data modu
 
 The custom ResNet classifies 10 digits using cross-entropy loss and Adam. Training and validation log epoch-level loss, accuracy, precision, recall, and F1. Validation loss controls learning-rate reduction, early stopping, and best-checkpoint selection. Checkpoints are saved every epoch, including `last.ckpt`, under `logs/train/runs/<timestamp>/checkpoints/`. After fitting, the best checkpoint is evaluated on the test split.
 
-The MLflow logger sends parameters, metrics, and artifacts through HTTP. The server at `http://localhost:50001` owns `logs/mlflow/db/mlflow.db` (SQLite tracking/registry) and `logs/mlflow/artifacts/` (proxied artifacts). Containers use `http://mlflow:5000` on the shared `vision-mlflow` network. Training mounts only host `logs/train/` and `logs/eval/` for outputs; the separate inference application never mounts training files. Ensure storage directories are writable by the container's non-root `mlcycle` user.
+The MLflow logger sends parameters, metrics, and artifacts through HTTP. The server at `http://localhost:50001` owns `logs/mlflow/db/mlflow.db` (SQLite tracking/registry) and `logs/mlflow/artifacts/` (proxied artifacts). Containers use `http://mlflow:5000` on the shared `vision-mlflow` network. Training mounts host `logs/train/` and `logs/eval/` for outputs and masks `logs/` on the separate Git checkout mount. Training and preparation use `LOCAL_UID` and `LOCAL_GID`. MLflow storage remains writable by the server's non-root `mlcycle` user, and inference continues to fetch artifacts over HTTP.
 
 The Hydra `registry` group controls publication after successful testing. Training publishes its best-validation-loss checkpoint; standalone evaluation publishes its evaluated checkpoint when `logger=mlflow` is selected. The current implementation exports a self-contained TorchScript network, registers it as `MNIST`, and moves `best_model` when finite `test/loss` strictly improves (ties keep the incumbent). This alias-promotion rule differs from the agreed validation-based selection requirement; see `docs/architecture.md#model-selection-mismatch`. Publishers run sequentially. Inference resolves the alias to an exact numeric version before downloading. Do not swallow publication errors or reintroduce imports from the training checkout into inference.
 
 New runs default to the selected `data.name` (`MNIST`, `PCB`, etc.) with server-proxied artifact URIs; `MLFLOW_EXPERIMENT_NAME` can override the experiment name. Original file history remains in `logs/mlflow/mlruns/`, with a verified backup under `logs/mlflow/backups/`; its metadata was migrated using MLflow 3.18's `migrate-filestore`. Migration preserves historical artifact paths rather than converting them to HTTP URIs. Preserve these files and back up tracking data before future migrations.
 
 ## Build, Test, and Development Commands
+
+Normal training now prepares immutable data through `src/data/prepare_dataset.py`,
+uploads it with DVC, and commits only allowlisted metadata before fitting. Hydra
+settings live under `configs/data/`; the data modules own snapshot export/loading,
+without a separate adapter layer. Relevant source must be committed and match the
+Docker image. Code and metadata revisions are distinct; metadata-only commits do
+not invalidate reuse. Keep dataset bytes in DVC and existing models in MLflow.
+Use `just prepare-data` / `just prepare-data-pcb` for the CPU-only data stage,
+`reproducibility.force_retrain=true` to bypass reuse, and `just reproduce RUN_ID`
+for isolated replay. Versioning tests must use temporary repositories/remotes;
+never automatically commit implementation changes or historical tracking data.
 
 When asked to run project code, always use Docker Compose, including training, evaluation, tests, and diagnostic scripts. Do not run project Python or uv commands directly on the host unless explicitly requested.
 
@@ -53,6 +64,14 @@ Use four-space Python indentation, `snake_case` functions/modules, and `PascalCa
 
 ## Testing Guidelines
 
+For documentation-only changes (including README, docs, and prose-only AGENTS.md
+edits), skip local pytest, Ruff, and MyPy. Review the diff, check local links and
+anchors, check code fences and diagrams where changed, and run `git diff --check`.
+This exception applies when executable code, dependencies, runtime configuration,
+and CI/quality configuration are unchanged; it does not exempt those changes
+merely because documentation changed too. Report tests as not run for
+documentation-only changes. Existing automatic GitHub Actions remain unchanged.
+
 Use pytest files named `test_*.py` and functions named `test_*`. Reuse fixtures and mark expensive integration checks with `@pytest.mark.slow`. CI enforces measured CPU line and branch coverage floors from `.github/coverage-baseline.json`. Report actual commands, counts, failures, and skips rather than reusing historical results; preserve meaningful assertions.
 
 ## Commit & Pull Request Guidelines
@@ -64,7 +83,7 @@ For every “commit & push” request, complete both local verification and remo
 “Commit & push” also authorizes creating or updating a pull request automatically when safe. Reuse an open PR for the current branch; otherwise create one against the repository's default branch after verification. When starting on the default branch, create a feature branch before committing unless the user explicitly requests a direct push. Do not merge automatically, rewrite published history, create duplicate/empty PRs, or manufacture a retrospective PR for changes already on the target branch. Resolve the head/base from repository context first; if a safe action remains blocked or ambiguous, explain the specific reason and ask for direction before taking a risky action. Include the PR URL in the completion report. PR creation is part of delivery, distinct from creating a throwaway PR solely to trigger CI.
 
 1. Inspect the branch, upstream, working tree, and diff. Stage only the intended changes; preserve unrelated changes and exclude credentials and generated artifacts.
-2. Before committing, run `docker compose run --build --rm tests uv run pytest --ignore=tests/test_sweeps.py`. Exclude sweeps unless explicitly requested. For Python, dependency, or quality-configuration changes, also run the Compose Ruff lint, formatting, and core MyPy commands documented above. Check `uv lock --check` and `uv pip check` through Compose for dependency changes; validate workflow edits with actionlint. Fix failures without weakening assertions or introducing broad suppressions.
+2. Before committing, apply the documentation-only exception in Testing Guidelines when applicable; otherwise run `docker compose run --build --rm tests uv run pytest --ignore=tests/test_sweeps.py`. Exclude sweeps unless explicitly requested. For Python, dependency, or quality-configuration changes, also run the Compose Ruff lint, formatting, and core MyPy commands documented above. Check `uv lock --check` and `uv pip check` through Compose for dependency changes; validate workflow edits with actionlint. Fix failures without weakening assertions or introducing broad suppressions.
 3. Commit and push the verified changes to the intended remote branch. Record its full commit SHA and branch name, then look for a CI run for that exact commit:
 
    ```bash

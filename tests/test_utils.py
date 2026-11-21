@@ -29,3 +29,28 @@ def test_config_utilities_save_output(cfg_train, monkeypatch):
     output_dir = Path(cfg_train.paths.output_dir)
     assert "dev" in (output_dir / "tags.log").read_text()
     assert "CONFIG" in (output_dir / "config_tree.log").read_text()
+
+
+def test_source_revision_requires_clean_matching_code(tmp_path):
+    from src.utils.utils import git, source_provenance
+
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    (repository / "src").mkdir()
+    code = repository / "src/train.py"
+    code.write_text("print('committed')\n")
+    git(repository, "init", "-b", "main")
+    git(repository, "config", "user.name", "Fixture")
+    git(repository, "config", "user.email", "fixture@example.invalid")
+    git(repository, "add", "--", "src/train.py")
+    git(repository, "commit", "-m", "Initial source")
+    clean = source_provenance(repository, repository)
+    assert clean["revision"] == git(repository, "rev-parse", "HEAD")
+    code.write_text("print('dirty')\n")
+    with pytest.raises(RuntimeError, match="uncommitted"):
+        source_provenance(repository, repository)
+    git(repository, "restore", "--", "src/train.py")
+    image = tmp_path / "image"
+    image.mkdir()
+    with pytest.raises(RuntimeError, match="Rebuild"):
+        source_provenance(repository, image)

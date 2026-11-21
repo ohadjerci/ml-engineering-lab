@@ -33,6 +33,7 @@ env/
 
 # Machine-specific Hydra overrides
 /configs/local/**
+/compose.private.yaml
 !/configs/local/**/
 !/configs/local/**/.gitkeep
 

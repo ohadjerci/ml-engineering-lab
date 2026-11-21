@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
+from src.data.components import SPLITS, copy_file, verify_snapshot
 from src.data.components.group_batch_sampler import GroupBatchSampler
 from src.data.components.pcb_dataset import PCBDataset, collate_pcb, label_lookup, read_manifest
 
@@ -32,6 +33,7 @@ class PCBDataModule(LightningDataModule):
         batch_size: int,
         num_workers: int,
         pin_memory: bool,
+        snapshot_path: str | None = None,
     ):
         super().__init__()
         self.save_hyperparameters(logger=False)
@@ -89,6 +91,8 @@ class PCBDataModule(LightningDataModule):
         self.split_state: dict[str, Any] = {}
 
     def prepare_data(self) -> None:
+        if self.hparams["snapshot_path"]:
+            return
         # Local files only: no implicit download or extraction.
         if not Path(self.hparams["manifest_path"]).is_file():
             raise ValueError(f"Manifest not found: {self.hparams['manifest_path']}")
@@ -97,6 +101,9 @@ class PCBDataModule(LightningDataModule):
         if self.trainer is not None and self.trainer.world_size != 1:
             raise ValueError("PCB complete-group batching requires a single device and node")
         if self.data_train is not None:
+            return
+        if self.hparams["snapshot_path"]:
+            self._load_snapshot(Path(self.hparams["snapshot_path"]))
             return
         info = read_manifest(
             self.hparams["root_dir"], self.hparams["manifest_path"], self.class_mapping
@@ -183,6 +190,71 @@ class PCBDataModule(LightningDataModule):
             self._validate_state(json.loads(Path(saved).read_text()))
         self._build_datasets()
 
+    def export_snapshot(self, destination: Path) -> dict[str, Any]:
+        self.prepare_data()
+        self.setup()
+        records = []
+        for source in self.manifest_info["records"]:
+            record = {**source, "id": source["image_path"]}
+            for key in ("image_path", "mask_path"):
+                if source.get(key):
+                    record[key] = f"files/{source[key]}"
+                    copy_file(
+                        Path(self.hparams["root_dir"]) / source[key], destination, record[key]
+                    )
+            records.append(record)
+        copy_file(Path(self.hparams["manifest_path"]), destination, "annotations/pcb.json")
+        return {
+            "name": self.name,
+            "annotation_format": "pcb-group-manifest-v1",
+            "class_mapping": [
+                {"name": name, "index": i, "labels": labels}
+                for i, (name, labels) in enumerate(self.class_mapping.items())
+            ],
+            "records": records,
+            "splits": {
+                name: [r["image_path"] for r in getattr(self, f"data_{name}").records]
+                for name in SPLITS
+            },
+            "loader_state": {
+                "meta": self.manifest_info["meta"],
+                "manifest_fingerprint": self.manifest_info["fingerprint"],
+            },
+        }
+
+    def _load_snapshot(self, root: Path) -> None:
+        manifest = verify_snapshot(root)
+        expected = [
+            {"name": name, "index": i, "labels": labels}
+            for i, (name, labels) in enumerate(self.class_mapping.items())
+        ]
+        if manifest["class_mapping"] != expected:
+            raise ValueError("Snapshot class mapping differs from configured targets")
+        records = []
+        for item in manifest["records"]:
+            record = dict(item)
+            # Keep original image metadata and checkpoint split identifiers stable.
+            record["image_path"] = record["id"]
+            record.pop("id")
+            if record.get("mask_path"):
+                record["mask_path"] = record["mask_path"].removeprefix("files/")
+            records.append(record)
+        self.hparams["root_dir"] = str(root / "files")
+        self.manifest_info = {
+            "records": records,
+            "meta": manifest["loader_state"]["meta"],
+            "fingerprint": manifest["loader_state"]["manifest_fingerprint"],
+        }
+        self.split_state = {
+            "fingerprint": self.manifest_info["fingerprint"],
+            "class_mapping": self.class_mapping,
+            "classes": self.classes,
+            "preprocessing": self.preprocessing,
+            "split": {k: v for k, v in self.split_config.items() if k != "assignments_path"},
+            "assignments": {sid: name for name in SPLITS for sid in manifest["splits"][name]},
+        }
+        self._build_datasets()
+
     def _validate_state(self, state: dict[str, Any]) -> None:
         for key in ("fingerprint", "class_mapping", "classes", "split", "preprocessing"):
             if state.get(key) != self.split_state[key]:
@@ -194,6 +266,8 @@ class PCBDataModule(LightningDataModule):
             "test",
         }:
             raise ValueError("Saved split must assign every image once to train/val/test")
+        if self.hparams["snapshot_path"] and assigned != self.split_state["assignments"]:
+            raise ValueError("Checkpoint split assignments differ from the versioned snapshot")
         self.split_state = state
 
     def _build_datasets(self) -> None:

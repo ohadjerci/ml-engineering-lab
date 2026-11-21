@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - /data: mnist
+  - /data/versioning@versioning: local
+  - /paths: default
+  - /hydra: default
+  - _self_
+
+task_name: prepare_dataset
+tags: [data]

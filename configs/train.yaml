@@ -14,6 +14,8 @@ defaults:
   - extras: default.yaml
   - hydra: default.yaml
   - registry: default.yaml
+  - data/versioning@versioning: local
+  - data/reproducibility@reproducibility: default
 
   # experiment configs allow for version control of specific hyperparameters
   # e.g. best hyperparameters for given model and datamodule

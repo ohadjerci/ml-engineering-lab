@@ -127,3 +127,14 @@ the shared classifier, PCB data code, results callback, and validation entry poi
 with MyPy. Coverage floors, four adjacent badges, seven-day report artifacts, and
 trusted default-branch PR comment publishing remain in place. Real PCB data is
 not required by CI. Local commands use Compose; hosted checks use the runner's uv.
+# Dataset snapshots
+
+`just prepare-data-pcb` runs the same preparation/versioning stage used automatically
+by `just train-pcb`, without reserving a GPU. Snapshots preserve image/mask bytes,
+annotation fields, class order and exact group-separated split memberships. Training
+reads the snapshot even if original files subsequently change.
+
+Another dataset in the same format can inherit `pcb` in its own `configs/data/`
+file and override its name and paths. No additional adapter or Python module is
+needed. Use `just train-pcb data=your_dataset` and
+`just prepare-data data=your_dataset`. See [storage/reproduction configuration](configuration.md#dataset-versioning-and-reproduction).

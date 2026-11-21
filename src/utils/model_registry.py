@@ -194,6 +194,7 @@ def publish_evaluated_model(
             metadata=metadata,
         )
     version = str(info.registered_model_version)
+    client.set_tag(logger.run_id, "reproducibility.model_uri", info.model_uri)
     for key, value in {
         "selection_metric": metric,
         "selection_score": str(score),

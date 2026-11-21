@@ -20,11 +20,17 @@ services:
       dockerfile: Dockerfile/Dockerfile
     gpus: all
     shm_size: "2gb"
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    tmpfs:
+      - /repo/logs:mode=0755,uid=${LOCAL_UID:-1000},gid=${LOCAL_GID:-1000}
     depends_on:
       mlflow:
         condition: service_healthy
     networks: [default, mlflow]
     volumes:
+      - .:/repo
+      - ./configs/local:/workspace/configs/local:ro
+      - ${DVC_LOCAL_REMOTE_DIR:-./data/.dvc-remote}:/dvc-remote
       - ./data:/workspace/data
       - ./logs/train:/workspace/logs/train
       - ./logs/eval:/workspace/logs/eval
@@ -32,7 +38,68 @@ services:
       OMP_NUM_THREADS: "2"
       MKL_NUM_THREADS: "2"
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_NAME:
+      MLFLOW_TRACKING_USERNAME:
+      MLFLOW_TRACKING_PASSWORD:
+      MLFLOW_TRACKING_TOKEN:
+      GIT_WORKTREE: /repo
+      HOME: /tmp
+      UV_CACHE_DIR: /tmp/uv-cache
+      DVC_REMOTE_NAME:
+      DVC_REMOTE_URL: ${DVC_REMOTE_URL:-/dvc-remote}
+      GIT_AUTHOR_NAME:
+      GIT_AUTHOR_EMAIL:
+      GIT_COMMITTER_NAME:
+      GIT_COMMITTER_EMAIL:
+      GIT_SSH_COMMAND:
+      AWS_PROFILE:
+      AWS_ACCESS_KEY_ID:
+      AWS_SECRET_ACCESS_KEY:
+      AWS_SESSION_TOKEN:
+      AWS_DEFAULT_REGION:
+      DVC_NO_ANALYTICS: "true"
     command: [uv, run, --locked, python, src/train.py]
+
+  prepare_dataset:
+    profiles: [tools]
+    image: mlcycle:uv
+    build:
+      context: .
+      dockerfile: Dockerfile/Dockerfile
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    tmpfs:
+      - /repo/logs:mode=0755,uid=${LOCAL_UID:-1000},gid=${LOCAL_GID:-1000}
+    networks: [default, mlflow]
+    volumes:
+      - .:/repo
+      - ./configs/local:/workspace/configs/local:ro
+      - ${DVC_LOCAL_REMOTE_DIR:-./data/.dvc-remote}:/dvc-remote
+      - ./data:/workspace/data
+      - ./logs/prepare_dataset:/workspace/logs/prepare_dataset
+      - ./logs/reproduce:/workspace/logs/reproduce
+    environment:
+      GIT_WORKTREE: /repo
+      HOME: /tmp
+      UV_CACHE_DIR: /tmp/uv-cache
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_TRACKING_USERNAME:
+      MLFLOW_TRACKING_PASSWORD:
+      MLFLOW_TRACKING_TOKEN:
+      DVC_REMOTE_NAME:
+      DVC_REMOTE_URL: ${DVC_REMOTE_URL:-/dvc-remote}
+      GIT_AUTHOR_NAME:
+      GIT_AUTHOR_EMAIL:
+      GIT_COMMITTER_NAME:
+      GIT_COMMITTER_EMAIL:
+      GIT_SSH_COMMAND:
+      AWS_PROFILE:
+      AWS_ACCESS_KEY_ID:
+      AWS_SECRET_ACCESS_KEY:
+      AWS_SESSION_TOKEN:
+      AWS_DEFAULT_REGION:
+      DVC_NO_ANALYTICS: "true"
+    entrypoint: [uv, run, --locked, python, src/data/prepare_dataset.py]
+    command: []
 
   debug:
     profiles: [training]
@@ -59,6 +126,7 @@ services:
       OMP_NUM_THREADS: "2"
       MKL_NUM_THREADS: "2"
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_EXPERIMENT_NAME:
     command: [sleep, infinity]
 
   mlflow:

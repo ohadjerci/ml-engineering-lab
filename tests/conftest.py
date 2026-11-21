@@ -27,6 +27,8 @@ def cfg_train_global() -> DictConfig:
             cfg.extras.print_config = False
             cfg.extras.enforce_tags = False
             cfg.logger = None
+            # Versioning is exercised separately with isolated fixture repositories.
+            cfg.versioning.enabled = False
 
     return cfg
 

@@ -61,6 +61,8 @@ def pcb_config(pcb, mode="train"):
         )
     with open_dict(cfg):
         cfg.logger = None
+        if "versioning" in cfg:
+            cfg.versioning.enabled = False
         cfg.data.root_dir = str(root)
         cfg.data.manifest_path = str(manifest)
         cfg.data.preprocessing.image_size = [16, 16]
@@ -94,6 +96,109 @@ def test_manifest_labels_metadata_and_order(pcb):
         group["images"].reverse()
     manifest.write_text(json.dumps(source))
     assert read_manifest(str(root), str(manifest), mapping) == info
+
+
+def test_pcb_snapshot_preserves_training_inputs_and_groups(pcb):
+    from src.data.components import build_manifest
+
+    cfg = pcb_config(pcb)
+    original = hydra.utils.instantiate(cfg.data)
+    original.setup()
+    snapshot = pcb[0] / "snapshot"
+    snapshot.mkdir()
+    build_manifest(snapshot, original.export_snapshot(snapshot))
+    restored = hydra.utils.instantiate(cfg.data, snapshot_path=str(snapshot))
+    restored.prepare_data()
+    restored.setup()
+    assert restored.split_state == original.split_state
+    incompatible = copy.deepcopy(restored.split_state)
+    assignments = incompatible["assignments"]
+    sample = next(iter(assignments))
+    assignments[sample] = "test" if assignments[sample] != "test" else "train"
+    with pytest.raises(ValueError, match="differ from the versioned snapshot"):
+        restored.load_state_dict(incompatible)
+    for split in ("train", "val", "test"):
+        expected = getattr(original, f"data_{split}")
+        actual = getattr(restored, f"data_{split}")
+        assert len(expected) == len(actual)
+        for index in range(len(expected)):
+            torch.testing.assert_close(expected[index]["image"], actual[index]["image"])
+            assert expected[index]["metadata"] == actual[index]["metadata"]
+    # Removing source images cannot affect the restored data module.
+    for image in pcb[0].glob("NG/**/*.jpg"):
+        image.unlink()
+    assert len(next(iter(restored.train_dataloader()))["target"]) > 0
+
+
+def test_versioned_training_reuse_evaluation_and_force(pcb, monkeypatch):
+    import importlib
+    from pathlib import Path
+
+    from mlflow import MlflowClient
+
+    from src.utils.utils import git
+
+    training = importlib.import_module("src.train")
+    root, _ = pcb
+    repository = root / "repository"
+    repository.mkdir()
+    git(repository, "init", "-b", "main")
+    git(repository, "config", "user.name", "Fixture")
+    git(repository, "config", "user.email", "fixture@example.invalid")
+    (repository / ".gitignore").write_text(
+        "/data/**\n!/data/**/\n!/data/**/*.dvc\n!/data/**/.gitignore\n"
+    )
+    git(repository, "add", "--", ".gitignore")
+    git(repository, "commit", "-m", "Initial repository")
+    cfg = pcb_config(pcb)
+    HydraConfig().set_config(cfg)
+    cfg.versioning.enabled = True
+    cfg.registry.enabled = True
+    cfg.versioning.repository_dir = str(repository)
+    cfg.versioning.cache_dir = str(root / "cache")
+    cfg.versioning.coordination_dir = str(root / "locks")
+    cfg.versioning.remote.url = str(root / "remote")
+    with open_dict(cfg.trainer):
+        cfg.trainer.limit_train_batches = 1
+        cfg.trainer.limit_val_batches = 1
+        cfg.trainer.limit_test_batches = 1
+    cfg.logger = {
+        "mlflow": {
+            "_target_": "lightning.pytorch.loggers.mlflow.MLFlowLogger",
+            "experiment_name": "PCB",
+            "tracking_uri": f"sqlite:///{root}/tracking.db",
+        }
+    }
+    client = MlflowClient(tracking_uri=cfg.logger.mlflow.tracking_uri)
+    client.create_experiment("PCB", artifact_location=(root / "artifacts").as_uri())
+    source = {
+        "revision": git(repository, "rev-parse", "HEAD"),
+        "identity": "source",
+        "repository": "",
+        "files": {"src/train.py": "code", "uv.lock": "lock"},
+    }
+    monkeypatch.setattr(training, "source_provenance", lambda *args: source)
+    metrics, original = train(cfg)
+    assert original["reused"] is False and "test/loss" in metrics
+    assert len(client.search_model_versions("name = 'PCB'")) == 1
+    _, repeated = train(cfg)
+    assert repeated["reused"] is True and repeated["run_id"] == original["run_id"]
+    cfg.test = False
+    fit_metrics, fit_only = train(cfg)
+    assert fit_only["reused"] is True
+    assert not any(name.startswith("test/") for name in fit_metrics)
+    cfg.test = True
+    # Test-only changes evaluate again but must not fit or register another model.
+    cfg.trainer.limit_test_batches = 2
+    _, evaluated = train(cfg)
+    assert evaluated["reused"] is True
+    assert evaluated["evaluation_run_id"] != original["run_id"]
+    assert len(client.search_model_versions("name = 'PCB'")) == 1
+    cfg.reproducibility.force_retrain = True
+    _, fresh = train(cfg)
+    assert fresh["reused"] is False and fresh["run_id"] != original["run_id"]
+    assert len(client.search_model_versions("name = 'PCB'")) == 2
+    assert Path(fresh["trainer"].checkpoint_callback.best_model_path).is_file()
 
 
 @pytest.mark.parametrize(
@@ -343,7 +448,9 @@ def test_publication_uses_pcb_shape_and_registry(monkeypatch):
     monkeypatch.setattr(registry.mlflow, "set_tracking_uri", Mock())
     monkeypatch.setattr(registry.mlflow, "set_registry_uri", Mock())
     monkeypatch.setattr(registry.mlflow, "start_run", lambda **kwargs: nullcontext())
-    log_model = Mock(return_value=SimpleNamespace(registered_model_version="2"))
+    log_model = Mock(
+        return_value=SimpleNamespace(registered_model_version="2", model_uri="models:/fixture")
+    )
     monkeypatch.setattr(registry.mlflow.pytorch, "log_model", log_model)
     promote = Mock()
     monkeypatch.setattr(registry, "promote_if_better", promote)

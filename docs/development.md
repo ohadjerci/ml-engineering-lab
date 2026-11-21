@@ -166,3 +166,22 @@ The VS Code configuration maps the local checkout to `/workspace`. Port 5678 is
 published only on `127.0.0.1`; stop the vision-inference debug container first if
 it uses the same host port. This attachment workflow does not enable the separate
 legacy Hydra `debug=` presets.
+# Dataset-versioning checks
+
+Core dataset tests use tiny fixtures, temporary Git repositories/local DVC remotes,
+and isolated SQLite MLflow tracking stores. They do not contact paid storage or
+need a GPU. Existing Compose test services still reserve GPUs; run the same tests
+on hosted CPU CI or an appropriate local CPU Compose override when no NVIDIA
+runtime is available. Existing test fixtures explicitly disable automatic versioning;
+focused versioning tests enable it only in temporary repositories.
+
+```bash
+just test tests/test_datamodules.py tests/test_model_registry.py tests/test_pcb.py
+just prepare-data --cfg job
+just check
+```
+
+Relevant uncommitted source intentionally fails normal versioned training. For
+breakpoint debugging before committing use `versioning.enabled=false`; versioned
+training must execute committed code matching its image. Dirty read-only source
+mounts are not accepted as reproducible code snapshots.
