@@ -91,7 +91,8 @@ calibrated correctness guarantee.
   Do not discard unrelated staged work to recover.
 - **DVC upload failure:** check the selected remote, provider credentials and mount
   permissions, then rerun preparation. Training has not started. Existing snapshots
-  and metadata journals support retries.
+  and metadata journals support retries. If Docker recreated storage as root, use
+  the [permission recovery commands](versioning-and-reproduction.md#permission-recovery).
 - **Owned metadata has user changes:** inspect the named file and resolve the edit;
   automatic publication refuses to overwrite it.
 - **Expected run is not reused:** inspect its completion tag/receipt, model artifacts,

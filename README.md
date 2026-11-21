@@ -4,7 +4,9 @@
 
 Train and evaluate image classifiers with PyTorch, Lightning, and Hydra. The
 current example is a custom ResNet for MNIST, with configurable training,
-checkpoint resume, metrics, and MLflow tracking.
+checkpoint resume, metrics, and MLflow tracking. PCB classification is also
+supported. Git records code and dataset pointers, DVC stores dataset versions,
+and MLflow records experiments and model artifacts.
 
 This project publishes packaged models to a shared MLflow registry.
 [Vision inference](https://github.com/ohadjerci/vision-inference) downloads those
@@ -43,15 +45,18 @@ Run commands in the **training repository root** after cloning.
    docker compose build train
    ```
 
-3. **Give the MLflow container user access to its new directories.** Training and
-   dataset preparation use your configured host UID/GID and the directories you
-   created. This command changes directory ownership, not existing model files. Review the
+3. **Give the MLflow container user access to its directories.**
+   This command changes directory ownership, not existing model files. Review the
    [storage guidance](docs/mlflow.md#storage-permissions) for an existing checkout.
 
    ```bash
    docker compose run --rm --no-deps --user root --entrypoint sh mlflow \
      -c 'chown mlcycle:mlcycle /workspace/logs/mlflow /workspace/logs/mlflow/db /workspace/logs/mlflow/artifacts'
    ```
+
+   For a fresh clone, preparation and training use the directories created by your
+   host user in step 2. If Docker previously created them, or you deleted storage,
+   follow [permission recovery](docs/versioning-and-reproduction.md#permission-recovery).
 
 4. **Start MLflow in the background.**
 
@@ -77,12 +82,10 @@ This downloads MNIST, trains, tests the best validation checkpoint, and register
 a packaged `MNIST` model. A short run demonstrates the workflow; its accuracy is
 not a quality guarantee. Omitting the epoch override uses a maximum of 500 epochs.
 
-Training now first prepares an immutable dataset snapshot, uploads it to the selected
-DVC remote, and commits only its DVC metadata. Equivalent completed MLflow runs are
-reused when their model artifacts remain intact. The checkout's relevant source must
-be committed and the Docker image rebuilt; metadata commits never include source edits
-or unrelated staged work. Configure Git author/committer identity in the repository
-or environment before the first launch.
+Before versioned training, commit relevant source/configuration and configure Git
+`user.name` and `user.email`. Preparation uploads an immutable dataset snapshot to
+DVC and commits only its metadata. Matching completed experiments can be reused.
+Use `just train` for subsequent runs; it rebuilds the Docker image.
 
 ```bash
 # Independent dataset preparation, without requesting a GPU.
@@ -94,10 +97,8 @@ just train reproducibility.force_retrain=true
 just reproduce ORIGINAL_MLFLOW_RUN_ID
 ```
 
-These recipes use Docker Compose. See [dataset configuration and reproduction](docs/configuration.md#dataset-versioning-and-reproduction)
-for storage permissions, SSH/S3 credentials, reuse, and recovery. Retain the referenced
-Git revisions, DVC objects and MLflow artifacts for as long as experiments must remain
-reproducible.
+These recipes use Docker Compose. See [versioning, storage, and reproduction](docs/versioning-and-reproduction.md)
+for how code, data, settings, and initial weights are recovered.
 
 - Checkpoints: `logs/train/runs/<timestamp>/checkpoints/`, including `last.ckpt`.
 - Run configuration, logs, and results: `logs/train/runs/<timestamp>/`.
@@ -112,9 +113,8 @@ requirement. See [model selection](docs/architecture.md#model-selection-mismatch
 ### Training with uncommitted changes
 
 Use `just train-dev` for MNIST or `just train-pcb-dev` for PCB while editing code
-or configuration. These recipes rebuild the image with your local changes and
-set `versioning.enabled=false`. The run skips DVC snapshots, automatic Git metadata
-commits, and experiment reuse. The usual MLflow logging still applies.
+or configuration. They rebuild with local changes and skip dataset versioning,
+automatic metadata commits, and experiment reuse. MLflow logging still applies.
 
 ```bash
 just train-dev
@@ -123,13 +123,42 @@ just train-pcb-dev trainer=cpu trainer.precision=32-true trainer.max_epochs=1
 just train-pcb versioning.enabled=false
 ```
 
-Use `just train` or `just train-pcb` after committing relevant source and
-configuration to enable versioning again. Local commits are enough for training.
-If you only need to version the dataset, `just prepare-data-pcb` can run while
-source edits are uncommitted and commits only the dataset metadata.
+Return to `just train` or `just train-pcb` after committing relevant changes.
+See the [versioning guide](docs/versioning-and-reproduction.md) for preparation,
+reuse, and replay requirements.
+
+## Pipeline
+
+```mermaid
+flowchart TD
+    Edit[Code and configuration] --> Git[Git commit]
+    Input[Source dataset] --> Prepare[Prepare immutable snapshot and splits]
+    Prepare --> DVC[DVC remote: dataset contents]
+    Prepare --> Pointer[Git commit: DVC pointer]
+    Git --> Train[Docker training or matching-run reuse]
+    Pointer --> Train
+    DVC --> Train
+    Train --> MLflow[MLflow: metrics, config, provenance, initial weights, models]
+    MLflow --> Registry[Model registry]
+    Registry --> Inference[Independent inference]
+    MLflow --> Replay[just reproduce RUN_ID]
+    Git --> Replay
+    Pointer --> Replay
+    DVC --> Replay
+    Replay --> Historical[Isolated historical checkout and Docker rebuild]
+    Historical --> NewRun[Fresh training and linked MLflow run]
+    Git --> CI[GitHub Actions: pushes, PRs to main, manual runs]
+    CI --> Checks[CPU tests, lockfile, dependencies, Ruff, MyPy, coverage]
+    Checks --> Reports[Four quality badges and report artifacts]
+```
+
+CI verifies changes independently of training; it does not deploy models or run
+GPU verification. The PR report shows **Coverage**, **PR coverage**, **Mypy**, and
+**Ruff**. See [CI details](docs/development.md) for checks, artifacts, and local commands.
 
 ## Further documentation
 
+- [Versioning, dataset storage, and training reproduction](docs/versioning-and-reproduction.md)
 - [VS Code breakpoint debugging in Docker](docs/development.md#vs-code-breakpoints-in-docker)
 - [MLflow setup, storage, and shared connectivity](docs/mlflow.md)
 - [Environment variables and Hydra configuration](docs/configuration.md)

@@ -102,6 +102,9 @@ TensorBoard are available logger presets; other included external logger presets
 may require optional dependencies and account settings.
 # Dataset versioning and reproduction
 
+For the storage layout, snapshot behavior, Git/file hashes, and step-by-step
+replay flow, see [versioning, storage, and reproduction](versioning-and-reproduction.md).
+
 Dataset selection remains in `configs/data/`. `src/data/prepare_dataset.py` uses
 `configs/data/prepare_dataset.yaml`; normal training calls the same implementation.
 The existing data modules implement `export_snapshot(destination)` and accept
